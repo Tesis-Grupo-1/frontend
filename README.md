@@ -21,10 +21,10 @@ cd proyecto
 ```
 ## Uso
 
-> Abrir Android Studio
-> Cargar el proyecto y esperar que se instalen las dependencias
-> Iniciar un emulador
-> Ejecutar la aplicacion
+- Abrir Android Studio
+- Cargar el proyecto y esperar que se instalen las dependencias
+- Iniciar un emulador
+- Ejecutar la aplicacion
 
 ## Tecnologías
 
