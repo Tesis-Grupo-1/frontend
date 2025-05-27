@@ -28,6 +28,8 @@ class LoadingActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var loadingText: TextView
     private lateinit var imageFile: File
+    private var startTime: Long = 0
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +46,7 @@ class LoadingActivity : AppCompatActivity() {
         imageFile = File(imageFilePath)
 
         // Iniciar el proceso de carga de la imagen
+        startTime = System.currentTimeMillis()
         processImage(imageFile)
     }
 
@@ -106,15 +109,23 @@ class LoadingActivity : AppCompatActivity() {
                     val plaga = plagaResponse?.plaga
 
                     if (plaga == true) {
+                        val endTime = System.currentTimeMillis()
+                        val processingTimeInSeconds = (endTime - startTime) / 1000.0
+
                         val precision = plagaResponse.prediction_value
                         Log.d("LoadingActivity", "Valor de precision: ${precision}")
                         val intent = Intent(this@LoadingActivity, PlagaEncontrada::class.java)
                         intent.putExtra("imageFilePath", imageFile.absolutePath)  // También pasa la imagen si quieres mostrarla
                         intent.putExtra("prediction", precision)
+                        intent.putExtra("processingTime", processingTimeInSeconds)
                         startActivity(intent)
                     } else {
+                        val endTime = System.currentTimeMillis()
+                        val processingTimeInSeconds = (endTime - startTime) / 1000.0
+
                         val intent2 = Intent(this@LoadingActivity, PlagaNoEncontrada::class.java)
                         intent2.putExtra("imageFilePath", imageFile.absolutePath)
+                        intent2.putExtra("processingTime", processingTimeInSeconds)
                         startActivity(intent2)
                     }
                 } else {

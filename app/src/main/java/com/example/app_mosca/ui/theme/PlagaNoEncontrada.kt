@@ -16,6 +16,10 @@ class PlagaNoEncontrada: ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detection_1)
 
+        val processingTime = intent.getDoubleExtra("processingTime", 0.0)
+        val timeTakenTextView = findViewById<TextView>(R.id.time_taken)
+        timeTakenTextView.text = "Tiempo de análisis: ${"%.2f".format(processingTime)}s"
+
         val imageView = findViewById<ImageView>(R.id.captured_image)
         val regresarButton = findViewById<Button>(R.id.button_regresar)
 

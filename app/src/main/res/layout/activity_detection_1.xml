@@ -43,6 +43,16 @@
         android:textColor="#000000"
         android:textSize="18sp" />
 
+    <TextView
+        android:id="@+id/time_taken"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="Tiempo de Deteccion: 0.0s"
+        android:textSize="16sp"
+        android:textColor="#000000"/>
+
     <Button
         android:id="@+id/button_regresar"
         android:layout_width="150dp"
