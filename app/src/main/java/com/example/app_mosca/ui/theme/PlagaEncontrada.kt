@@ -22,7 +22,7 @@ class PlagaEncontrada: ComponentActivity() {
         timeTakenTextView.text = "Tiempo de análisis: ${"%.2f".format(processingTime)}s"
 
         val imageView = findViewById<ImageView>(R.id.captured_image)
-        val precisionTextView = findViewById<TextView>(R.id.tvPrecision)
+        //val precisionTextView = findViewById<TextView>(R.id.tvPrecision)
         val regresarButton = findViewById<Button>(R.id.button_regresar)
 
         val imagePath = intent.getStringExtra("imageFilePath")
@@ -35,7 +35,7 @@ class PlagaEncontrada: ComponentActivity() {
         }
 
         // Mostrar la precisión en porcentaje con dos decimales
-        precisionTextView.text = "¡Probable presencia!\nPrecisión: ${"%.2f".format(precision * 100)}%"
+        //precisionTextView.text = "¡Probable presencia!\nPrecisión: ${"%.2f".format(precision * 100)}%"
 
         regresarButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)

@@ -35,15 +35,7 @@
         android:scaleType="centerCrop"
         android:contentDescription="Imagen capturada" />
 
-    <TextView
-        android:id="@+id/tvPrecision"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Precisión: 0%"
-        android:textColor="#000000"
-        android:textSize="18sp"
-        android:gravity="center"
-        android:layout_marginTop="20dp" />
+
 
     <TextView
         android:id="@+id/time_taken"
