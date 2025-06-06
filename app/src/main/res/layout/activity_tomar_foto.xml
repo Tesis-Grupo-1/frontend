@@ -16,13 +16,14 @@
         android:textSize="24sp" />
 
     <!-- Vista previa de la cámara -->
+
+
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="300dp"
-        android:layout_height="308dp"
+        android:layout_width="390dp"
+        android:layout_height="387dp"
         android:layout_gravity="center"
-        android:layout_marginTop="120dp" />
-
+        android:layout_marginTop="90dp" />
 
     <LinearLayout
         android:layout_width="wrap_content"

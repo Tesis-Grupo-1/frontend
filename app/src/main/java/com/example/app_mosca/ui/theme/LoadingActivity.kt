@@ -1,205 +1,247 @@
 package com.example.app_mosca.ui.theme
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import org.tensorflow.lite.Interpreter
+import java.io.File
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.channels.FileChannel
 import com.example.app_mosca.R
 import com.example.app_mosca.api.apiClient.ApiClient
 import com.example.app_mosca.models.DetectionResponse
-import com.example.app_mosca.models.PlagaResponse
 import com.example.app_mosca.models.UploadResponse
-import com.example.app_mosca.ui.theme.PlagaNoEncontrada
-import com.example.app_mosca.ui.theme.PlagaEncontrada
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
+import java.util.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import java.io.InputStream
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-class LoadingActivity : AppCompatActivity() {
+class LoadingActivity : ComponentActivity() {
 
     private lateinit var progressBar: ProgressBar
     private lateinit var loadingText: TextView
     private lateinit var imageFile: File
+    private lateinit var interpreter: Interpreter
+
     private var startTime: Long = 0
-    private lateinit var startTime2: String
-    private lateinit var endTime2: String
+    private var confidenceGlobal: Float = 0f
+    private var predictedLabelGlobal: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportActionBar?.hide()
         setContentView(R.layout.activity_loading)
 
+        // Inicializa los componentes de la interfaz
         progressBar = findViewById(R.id.progressBar)
-
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        startTime2 = sdf.format(Date())
-
         loadingText = findViewById(R.id.loadingText)
 
-        // Recibimos la imagen desde la actividad anterior
-        val imageFilePath = intent.getStringExtra("imageFilePath") ?: return
-        imageFile = File(imageFilePath)
+        // Obtén la URI de la imagen que fue pasada desde la actividad anterior
+        val imagePath = intent.getStringExtra("imagePath")
+        val imageUriString = intent.getStringExtra("imageUri")
 
-        // Iniciar el proceso de carga de la imagen
+        if (imagePath == null) {
+            loadingText.text = "Error: No se recibió la ruta de la imagen."
+            return
+        }
+
+        imageFile = File(imagePath)
+        val imageUri: Uri = Uri.parse(imageUriString)
+
+        if (!imageFile.exists()) {
+            loadingText.text = "Error: El archivo no existe en: $imagePath"
+            Log.e("LoadingActivity", "Archivo no encontrado: $imagePath")
+            return
+        }
+
+        // Cargar el modelo TFLite
+        try {
+            interpreter = Interpreter(loadModelFile("modelo.tflite"))
+        } catch (e: Exception) {
+            loadingText.text = "Error cargando modelo: ${e.message}"
+            return
+        }
+
+        // Inicia el proceso de predicción
         startTime = System.currentTimeMillis()
-        processImage(imageFile)
-
-
-    }
-
-    // Método para iniciar el proceso de carga
-    private fun processImage(imageFile: File) {
         progressBar.visibility = ProgressBar.VISIBLE
 
-        // Llamamos al método para subir la imagen
-        sendImageToApi(imageFile)
+        // Procesar la imagen y hacer la predicción
+        processImageAndPredict(imageUri)
     }
 
-    // Método para subir la imagen
-    private fun sendImageToApi(imageFile: File) {
+    private fun loadModelFile(modelName: String): ByteBuffer {
+        val assetFileDescriptor = assets.openFd(modelName)
+        val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        val startOffset = assetFileDescriptor.startOffset
+        val declaredLength = assetFileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+    }
+
+    private fun processImageAndPredict(imageUri: Uri) {
+        val bitmap = getBitmapFromUri(imageUri)
+        val inputBuffer = preprocessImage(bitmap)
+        val output = Array(1) { FloatArray(4) }  // Cambiado a 4 clases
+
+        interpreter.run(inputBuffer, output)
+
+        val endTime = System.currentTimeMillis()
+        val processingTimeSeconds = (endTime - startTime) / 1000.0
+
+        val probabilities = output[0]
+        val maxIndex = probabilities.indices.maxByOrNull { probabilities[it] } ?: -1
+        val classLabels = listOf("plaga", "sana", "otros", "animales")  // Nuevas etiquetas agregadas
+        val predictedLabel = if (maxIndex != -1) classLabels[maxIndex] else "desconocido"
+        val confidence = if (maxIndex != -1) probabilities[maxIndex] else 0f
+
+        Log.d("LoadingActivity", "Predicción: $predictedLabel con confianza $confidence")
+
+        // Guardamos globales para usar luego
+        confidenceGlobal = confidence
+        predictedLabelGlobal = predictedLabel
+
+        // Subir imagen y guardar detección
+        uploadImageAndSaveDetection(processingTimeSeconds)
+    }
+
+    private fun getBitmapFromUri(uri: Uri): Bitmap {
+        val inputStream: InputStream = contentResolver.openInputStream(uri)!!
+        return BitmapFactory.decodeStream(inputStream)
+    }
+
+    private fun preprocessImage(bitmap: Bitmap): ByteBuffer {
+        val inputSize = 224  // Tamaño esperado por el modelo
+        val imgData = ByteBuffer.allocateDirect(4 * inputSize * inputSize * 3)
+        imgData.order(ByteOrder.nativeOrder())
+
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, inputSize, inputSize, true)
+        val intValues = IntArray(inputSize * inputSize)
+        scaledBitmap.getPixels(intValues, 0, scaledBitmap.width, 0, 0, scaledBitmap.width, scaledBitmap.height)
+
+        for (pixel in intValues) {
+            val r = ((pixel shr 16) and 0xFF) / 255.0f
+            val g = ((pixel shr 8) and 0xFF) / 255.0f
+            val b = (pixel and 0xFF) / 255.0f
+            imgData.putFloat(r)
+            imgData.putFloat(g)
+            imgData.putFloat(b)
+        }
+
+        imgData.rewind()
+        return imgData
+    }
+
+    private fun uploadImageAndSaveDetection(processingTimeSeconds: Double) {
+        loadingText.text = "Cargando...."
         val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
         val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
 
         val apiService = ApiClient.apiService
-        val uploadCall = apiService.uploadImage(body)
+        val callUpload = apiService.uploadImage(body)
 
-        uploadCall.enqueue(object : Callback<UploadResponse> {
+        callUpload.enqueue(object : Callback<UploadResponse> {
             override fun onResponse(call: Call<UploadResponse>, response: Response<UploadResponse>) {
                 if (response.isSuccessful) {
                     val uploadResponse = response.body()
-                    val idImage = uploadResponse?.id_image
+                    val imageId = uploadResponse?.id_image
 
-                    if (idImage != null) {
-                        sendPredictionRequest(idImage, imageFile)
+                    if (imageId != null) {
+                        saveDetectionTime(imageId, processingTimeSeconds)
                     } else {
                         progressBar.visibility = ProgressBar.GONE
-                        loadingText.text = "Error al obtener el ID de la imagen"
+                        loadingText.text = "Error: No se obtuvo ID de imagen."
                     }
                 } else {
                     progressBar.visibility = ProgressBar.GONE
-                    loadingText.text = "Error al subir la imagen: ${response.message()}"
+                    loadingText.text = "Error al subir imagen: ${response.message()}"
                 }
             }
 
             override fun onFailure(call: Call<UploadResponse>, t: Throwable) {
                 progressBar.visibility = ProgressBar.GONE
-                loadingText.text = "Error de red: ${t.message}"
+                loadingText.text = "Error de red al subir imagen: ${t.message}"
             }
         })
     }
 
-    // Método para realizar la predicción
-    private fun sendPredictionRequest(idImage: Int, imageFile: File) {
-        val idImageRequestBody = RequestBody.create("text/plain".toMediaType(), idImage.toString())
-        val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
-        val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
+    private fun saveDetectionTime(imageId: Int, processingTimeSeconds: Double) {
+        val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dateDetection = sdfDate.format(Date())
+
+        val sdfTime = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+        val timeInitial = sdfTime.format(Date(startTime))
+        val timeFinal = sdfTime.format(Date(startTime + (processingTimeSeconds * 1000).toLong()))
 
         val apiService = ApiClient.apiService
-        val predictionCall = apiService.predictPlaga(idImageRequestBody, body)
+        val callSave = apiService.saveDetectionTime(
+            image_id = imageId,
+            result = (predictedLabelGlobal == "plaga").toString(),
+            prediction_value = confidenceGlobal.toString(),
+            time_initial = timeInitial,
+            time_final = timeFinal,
+            date_detection = dateDetection
+        )
 
-        predictionCall.enqueue(object : Callback<PlagaResponse> {
-            override fun onResponse(call: Call<PlagaResponse>, response: Response<PlagaResponse>) {
-                progressBar.visibility = ProgressBar.GONE
-
-                if (response.isSuccessful) {
-                    val plagaResponse = response.body()
-                    val idDetection = plagaResponse?.idDetection
-                    val plaga = plagaResponse?.plaga
-
-                    val endTime = System.currentTimeMillis()
-                    val processingTimeInSeconds = (endTime - startTime) / 1000.0
-
-
-
-                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                    val startTime2 = sdf.format(Date(startTime)) // formateas el inicio
-                    val endTime2 = sdf.format(Date(endTime)) // formateas el fin
-                    val timeDetection = processingTimeInSeconds.toFloat()
-
-                    sendDetectionTime(idDetection!!, startTime2, endTime2, timeDetection,
-                        onSuccess = {
-                            // Ahora sí inicias la siguiente pantalla
-                            if (plaga == true) {
-                                val precision = plagaResponse.prediction_value
-                                Log.d("LoadingActivity", "Valor de precision: $precision")
-                                val intent = Intent(this@LoadingActivity, PlagaEncontrada::class.java)
-                                intent.putExtra("imageFilePath", imageFile.absolutePath)
-                                intent.putExtra("prediction", precision)
-                                intent.putExtra("processingTime", processingTimeInSeconds)
-                                startActivity(intent)
-                            } else {
-                                val intent2 = Intent(this@LoadingActivity, PlagaNoEncontrada::class.java)
-                                intent2.putExtra("imageFilePath", imageFile.absolutePath)
-                                intent2.putExtra("processingTime", processingTimeInSeconds)
-                                startActivity(intent2)
-                            }
-                        },
-                        onFailure = { error ->
-                            // Manejo de error guardando tiempo (puedes loguear o mostrar mensaje)
-                            Log.e("LoadingActivity", "Error guardando tiempo de detección: ${error.message}")
-                            // Aunque falle el guardado, igual seguimos con la pantalla
-                            if (plaga == true) {
-                                val precision = plagaResponse.prediction_value
-                                val intent = Intent(this@LoadingActivity, PlagaEncontrada::class.java)
-                                intent.putExtra("imageFilePath", imageFile.absolutePath)
-                                intent.putExtra("prediction", precision)
-                                intent.putExtra("processingTime", processingTimeInSeconds)
-                                startActivity(intent)
-                            } else {
-                                val intent2 = Intent(this@LoadingActivity, PlagaNoEncontrada::class.java)
-                                intent2.putExtra("imageFilePath", imageFile.absolutePath)
-                                intent2.putExtra("processingTime", processingTimeInSeconds)
-                                startActivity(intent2)
-                            }
-                        }
-                    )
-                } else {
-                    loadingText.text = "Error al predecir la imagen: ${response.message()}"
-                }
-            }
-
-            override fun onFailure(call: Call<PlagaResponse>, t: Throwable) {
-                progressBar.visibility = ProgressBar.GONE
-                loadingText.text = "Error de red en la predicción: ${t.message}"
-            }
-        })
-    }
-
-    private fun sendDetectionTime(
-        idDetection: Int,
-        startTime2: String,
-        endTime2: String,
-        timeDetection: Float,
-        onSuccess: () -> Unit,
-        onFailure: (Throwable) -> Unit
-    ) {
-        val apiService = ApiClient.apiService
-        val call = apiService.saveDetectionTime(idDetection, startTime2, endTime2, timeDetection)
-
-        call.enqueue(object : Callback<DetectionResponse> {
+        callSave.enqueue(object : Callback<DetectionResponse> {
             override fun onResponse(call: Call<DetectionResponse>, response: Response<DetectionResponse>) {
+                progressBar.visibility = ProgressBar.GONE
                 if (response.isSuccessful) {
-                    onSuccess()
+                    // Redirigir a pantalla según resultado
+                    if (predictedLabelGlobal == "plaga") {
+                        val intent = Intent(this@LoadingActivity, PlagaEncontrada::class.java)
+                        intent.putExtra("imageFilePath", imageFile.absolutePath)
+                        intent.putExtra("prediction", confidenceGlobal)
+                        intent.putExtra("processingTime", processingTimeSeconds)
+                        startActivity(intent)
+                    } else {
+                        val intent = Intent(this@LoadingActivity, PlagaNoEncontrada::class.java)
+                        intent.putExtra("imageFilePath", imageFile.absolutePath)
+                        intent.putExtra("processingTime", processingTimeSeconds)
+                        startActivity(intent)
+                    }
                 } else {
-                    onFailure(Throwable("Error guardando tiempo: ${response.message()}"))
+                    loadingText.text = "Error al guardar detección: ${response.message()}"
                 }
             }
 
             override fun onFailure(call: Call<DetectionResponse>, t: Throwable) {
-                onFailure(t)
+                progressBar.visibility = ProgressBar.GONE
+                loadingText.text = "Error de red al guardar detección: ${t.message}"
+
+                // Igual mostrar pantalla según resultado
+                if (predictedLabelGlobal == "plaga" && confidenceGlobal >= 0.5f) {
+                    val intent = Intent(this@LoadingActivity, PlagaEncontrada::class.java)
+                    intent.putExtra("imageFilePath", imageFile.absolutePath)
+                    intent.putExtra("prediction", confidenceGlobal)
+                    intent.putExtra("processingTime", processingTimeSeconds)
+                    startActivity(intent)
+                } else {
+                    val intent = Intent(this@LoadingActivity, PlagaNoEncontrada::class.java)
+                    intent.putExtra("imageFilePath", imageFile.absolutePath)
+                    intent.putExtra("processingTime", processingTimeSeconds)
+                    startActivity(intent)
+                }
             }
         })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        interpreter.close()
     }
 }

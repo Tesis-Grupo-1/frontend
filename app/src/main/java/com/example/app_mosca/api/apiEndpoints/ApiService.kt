@@ -16,23 +16,19 @@ import retrofit2.http.Part
 
 interface ApiService {
 
-    // Endpoints para usuarios
-    @Multipart
-    @POST("/detection/predict")
-    fun predictPlaga(@Part("id_image") idImage: RequestBody, @Part file: MultipartBody.Part): Call<PlagaResponse>
-
-
     @Multipart
     @POST("/photo/upload")
     fun uploadImage(@Part file: MultipartBody.Part): Call<UploadResponse>
 
     @FormUrlEncoded
-    @POST("/detection/save_detection_time")
+    @POST("/detection/save_detection")
     fun saveDetectionTime(
-        @Field("id_detection") idDetection: Int,
-        @Field("start_time2") timeInitial: String,
-        @Field("end_time2") timeFinal: String,
-        @Field("time_detection") timeDetection: Float
+        @Field("image_id") image_id: Int,
+        @Field("result") result: String,
+        @Field("prediction_value") prediction_value: String,
+        @Field("time_initial") time_initial: String,
+        @Field("time_final") time_final: String,
+        @Field("date_detection") date_detection: String,
     ): Call<DetectionResponse>
 
 }

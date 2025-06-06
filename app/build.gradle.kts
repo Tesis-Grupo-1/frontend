@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.app_mosca"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.0.1"
+        versionCode = 4
+        versionName = "2.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -68,5 +68,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("androidx.cardview:cardview:1.0.0")
+    implementation("org.tensorflow:tensorflow-lite:2.17.0")
 
 }
