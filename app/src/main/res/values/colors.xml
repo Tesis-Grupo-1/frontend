@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Colores para placeholder -->
+    <color name="placeholder_background">#F5F5F5</color>
+    <color name="placeholder_border">#E0E0E0</color>
+
+    <!-- Colores para estado de error -->
+    <color name="error_background">#FFEBEE</color>
+    <color name="error_border">#FFCDD2</color>
+
 </resources>

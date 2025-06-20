@@ -8,96 +8,299 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.example.app_mosca.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileNotFoundException
 
-class PlagaNoEncontrada: ComponentActivity() {
+class PlagaNoEncontrada : ComponentActivity() {
+
+    companion object {
+        private const val TAG = "PlagaNoEncontrada"
+        private const val DEFAULT_PROCESSING_TIME = 0.0
+        private const val TIME_FORMAT = "%.2f"
+
+        // Dimensiones para el redimensionado de imagen
+        private const val DEFAULT_MAX_WIDTH = 290
+        private const val DEFAULT_MAX_HEIGHT = 387
+
+        // Extras del Intent
+        const val EXTRA_PROCESSING_TIME = "processingTime"
+        const val EXTRA_IMAGE_FILE_PATH = "imageFilePath"
+    }
+
+    // Views
+    private lateinit var timeTakenTextView: TextView
+    private lateinit var imageView: ImageView
+    private lateinit var regresarButton: Button
+
+    // Datos
+    private var processingTime: Double = DEFAULT_PROCESSING_TIME
+    private var imagePath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detection_1)
 
-        val processingTime = intent.getDoubleExtra("processingTime", 0.0)
-        val timeTakenTextView = findViewById<TextView>(R.id.time_taken)
-        timeTakenTextView.text = "Tiempo de análisis: ${"%.2f".format(processingTime)}s"
+        initializeViews()
+        extractIntentData()
+        setupUI()
+        setupClickListeners()
+        setupBackPressedHandler()
+    }
 
-        val imageView = findViewById<ImageView>(R.id.captured_image)
-        val regresarButton = findViewById<Button>(R.id.button_regresar)
+    private fun initializeViews() {
+        timeTakenTextView = findViewById(R.id.time_taken)
+        imageView = findViewById(R.id.captured_image)
+        regresarButton = findViewById(R.id.button_regresar)
+    }
 
-        val imagePath = intent.getStringExtra("imageFilePath")
+    private fun extractIntentData() {
+        processingTime = intent.getDoubleExtra(EXTRA_PROCESSING_TIME, DEFAULT_PROCESSING_TIME)
+        imagePath = intent.getStringExtra(EXTRA_IMAGE_FILE_PATH)
 
-        if (imagePath != null) {
-            // Corregir la orientación de la imagen antes de redimensionarla
-            val correctedBitmap = resizeAndFixOrientation(imagePath, 290, 387)
+        Log.d(TAG, "Processing time: $processingTime, Image path: $imagePath")
+    }
 
-            // Usar Glide para cargar la imagen corregida y redimensionada en el ImageView
-            Glide.with(this)
-                .load(correctedBitmap)
-                .into(imageView)
+    private fun setupUI() {
+        displayProcessingTime()
+        loadAndDisplayImage()
+    }
+
+    private fun displayProcessingTime() {
+        val formattedTime = TIME_FORMAT.format(processingTime)
+        timeTakenTextView.text = getString(R.string.analysis_time_format, formattedTime)
+    }
+
+    private fun loadAndDisplayImage() {
+        val path = imagePath
+
+        if (path.isNullOrEmpty()) {
+            Log.w(TAG, "Ruta de imagen no proporcionada")
+            handleImageLoadError()
+            return
         }
 
+        if (!File(path).exists()) {
+            Log.e(TAG, "El archivo de imagen no existe: $path")
+            handleImageLoadError()
+            return
+        }
+
+        try {
+            loadImageAsync(path)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al cargar la imagen", e)
+            handleImageLoadError()
+        }
+    }
+
+    private fun loadImageAsync(imagePath: String) {
+        // Ejecutar el procesamiento de imagen en un hilo de fondo
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val processedBitmap = processImage(imagePath)
+
+                // Cambiar al hilo principal para actualizar la UI
+                withContext(Dispatchers.Main) {
+                    displayProcessedImage(processedBitmap)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al procesar la imagen", e)
+                withContext(Dispatchers.Main) {
+                    handleImageLoadError()
+                }
+            }
+        }
+    }
+
+    private suspend fun processImage(imagePath: String): Bitmap = withContext(Dispatchers.IO) {
+        ImageProcessor.resizeAndFixOrientation(
+            imagePath = imagePath,
+            maxWidth = DEFAULT_MAX_WIDTH,
+            maxHeight = DEFAULT_MAX_HEIGHT
+        )
+    }
+
+    private fun displayProcessedImage(bitmap: Bitmap) {
+        Glide.with(this)
+            .load(bitmap)
+            .placeholder(R.drawable.placeholder_with_background)
+            .error(R.drawable.ic_broken_image)
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .into(imageView)
+    }
+
+    private fun handleImageLoadError() {
+        Toast.makeText(this, getString(R.string.error_loading_image), Toast.LENGTH_SHORT).show()
+        imageView.setImageResource(R.drawable.ic_broken_image)
+        imageView.setBackgroundResource(R.drawable.bg_error_state)
+    }
+
+    private fun setupClickListeners() {
         regresarButton.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-            finish()
+            navigateToMainActivity()
         }
     }
 
-    fun resizeAndFixOrientation(imagePath: String, maxWidth: Int, maxHeight: Int): Bitmap {
-        // Paso 1: Obtener las dimensiones originales de la imagen
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
+    private fun setupBackPressedHandler() {
+        // Manejo moderno del botón atrás
+        onBackPressedDispatcher.addCallback(this) {
+            navigateToMainActivity()
         }
-        BitmapFactory.decodeFile(imagePath, options)
-
-        val originalWidth = options.outWidth
-        val originalHeight = options.outHeight
-
-        // Calcular el factor de escala basado en el tamaño máximo (maxWidth y maxHeight)
-        val widthRatio = maxWidth.toFloat() / originalWidth
-        val heightRatio = maxHeight.toFloat() / originalHeight
-
-        // Elegir el factor de escala más pequeño para mantener la relación de aspecto
-        val scaleFactor = minOf(widthRatio, heightRatio)
-
-        // Calcular las nuevas dimensiones de la imagen manteniendo la relación de aspecto
-        val newWidth = (originalWidth * scaleFactor).toInt()
-        val newHeight = (originalHeight * scaleFactor).toInt()
-
-        // Paso 2: Corregir la orientación de la imagen si es necesario
-        val exif = ExifInterface(imagePath)
-        val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-
-        var bitmap = BitmapFactory.decodeFile(imagePath)
-        val matrix = Matrix()
-
-        when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
-            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
-        }
-
-        // Crear la imagen corregida de la orientación
-        bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-
-        // Paso 3: Redimensionar la imagen a las nuevas dimensiones calculadas
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, false)
     }
 
-
-    @Suppress("MissingSuperCall")
-    override fun onBackPressed() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         startActivity(intent)
         finish()
+    }
+
+    // Método mantenido para compatibilidad, pero se usa OnBackPressedDispatcher
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        super.onBackPressed()
+        // El manejo real se hace en setupBackPressedHandler()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Limpiar referencias para evitar memory leaks
+        Log.d(TAG, "Activity destroyed")
+    }
+
+    /**
+     * Clase utilitaria para procesamiento de imágenes
+     * Reutilizada de PlagaEncontrada para evitar duplicación de código
+     */
+    object ImageProcessor {
+
+        private val BITMAP_CONFIG = Bitmap.Config.RGB_565 // Más eficiente en memoria
+
+        suspend fun resizeAndFixOrientation(
+            imagePath: String,
+            maxWidth: Int,
+            maxHeight: Int
+        ): Bitmap = withContext(Dispatchers.IO) {
+
+            val imageFile = File(imagePath)
+            if (!imageFile.exists()) {
+                throw FileNotFoundException("Imagen no encontrada: $imagePath")
+            }
+
+            // Obtener dimensiones originales sin cargar la imagen completa
+            val originalDimensions = getImageDimensions(imagePath)
+
+            // Calcular factor de escala
+            val scaleFactor = calculateScaleFactor(
+                originalDimensions.first,
+                originalDimensions.second,
+                maxWidth,
+                maxHeight
+            )
+
+            // Cargar imagen con el factor de escala apropiado
+            val bitmap = loadScaledBitmap(imagePath, scaleFactor)
+
+            // Corregir orientación
+            return@withContext fixImageOrientation(bitmap, imagePath)
+        }
+
+        private fun getImageDimensions(imagePath: String): Pair<Int, Int> {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(imagePath, options)
+            return Pair(options.outWidth, options.outHeight)
+        }
+
+        private fun calculateScaleFactor(
+            originalWidth: Int,
+            originalHeight: Int,
+            maxWidth: Int,
+            maxHeight: Int
+        ): Float {
+            val widthRatio = maxWidth.toFloat() / originalWidth
+            val heightRatio = maxHeight.toFloat() / originalHeight
+            return minOf(widthRatio, heightRatio, 1.0f) // No hacer upscale
+        }
+
+        private fun loadScaledBitmap(imagePath: String, scaleFactor: Float): Bitmap {
+            val options = BitmapFactory.Options().apply {
+                inPreferredConfig = BITMAP_CONFIG
+                inSampleSize = calculateInSampleSize(scaleFactor)
+            }
+
+            return BitmapFactory.decodeFile(imagePath, options)
+                ?: throw IllegalStateException("No se pudo decodificar la imagen")
+        }
+
+        private fun calculateInSampleSize(scaleFactor: Float): Int {
+            return if (scaleFactor < 1.0f) {
+                (1.0f / scaleFactor).toInt()
+            } else {
+                1
+            }
+        }
+
+        private fun fixImageOrientation(bitmap: Bitmap, imagePath: String): Bitmap {
+            return try {
+                val exif = ExifInterface(imagePath)
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+
+                val matrix = createRotationMatrix(orientation)
+
+                if (matrix.isIdentity) {
+                    bitmap
+                } else {
+                    Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                        .also {
+                            if (it != bitmap) bitmap.recycle() // Liberar memoria del bitmap original
+                        }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "No se pudo leer la orientación EXIF, usando imagen original", e)
+                bitmap
+            }
+        }
+
+        private fun createRotationMatrix(orientation: Int): Matrix {
+            val matrix = Matrix()
+
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.postRotate(90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.postRotate(-90f)
+                    matrix.postScale(-1f, 1f)
+                }
+            }
+
+            return matrix
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.example.app_mosca.R
 import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -17,6 +18,7 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 
@@ -24,60 +26,165 @@ import java.io.File
 
 class TomarFoto : ComponentActivity() {
 
-    private lateinit var currentPhotoUri: Uri // Variable global para almacenar la URI de la foto tomada
-    private lateinit var currentPhotoFile: File
+    companion object {
+        private const val TAG = "TomarFoto"
+        private const val IMAGES_FOLDER = "images"
+        private const val IMAGE_MIME_TYPE = "image/jpeg"
+        private const val FILE_EXTENSION = ".jpg"
+        private const val FILE_PROVIDER_AUTHORITY = "com.example.app_mosca.fileprovider"
 
-    // Definir el ActivityResultLauncher para capturar la imagen
-    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess ->
-        if (isSuccess) {
-            Log.d("TomarFoto", "Ruta del archivo: ${currentPhotoFile.absolutePath}")
+        // Extras para el Intent
+        const val EXTRA_IMAGE_URI = "imageUri"
+        const val EXTRA_IMAGE_PATH = "imagePath"
+    }
 
-            if (currentPhotoFile.exists()) {
+    private var currentPhotoUri: Uri? = null
+    private var currentPhotoFile: File? = null
 
-                MediaScannerConnection.scanFile(
-                    this,
-                    arrayOf(currentPhotoFile.absolutePath),
-                    arrayOf("image/jpeg")
-                ) { path, uri ->
-                    Log.d("TomarFoto", "Imagen agregada a la galería: $path")
-                }
-
-                val intent = Intent(this, LoadingActivity::class.java)
-                // Pasar tanto la URI como la ruta del archivo
-                intent.putExtra("imageUri", currentPhotoUri.toString())
-                intent.putExtra("imagePath", currentPhotoFile.absolutePath) // Agregar la ruta
-                startActivity(intent)
-            } else {
-                Toast.makeText(this, "Error: La foto no se ha guardado correctamente", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            Toast.makeText(this, "Error al tomar la foto", Toast.LENGTH_SHORT).show()
+    // Usar lazy para inicializar el launcher
+    private val takePictureLauncher by lazy {
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess ->
+            handleCameraResult(isSuccess)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val picturesDirectory = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "images")
+        if (hasRequiredPermissions()) {
+            initializePhotoCapture()
+        } else {
+            showErrorAndFinish("Permisos de cámara requeridos")
+        }
+    }
 
-        if (!picturesDirectory.exists()) {
-            val isCreated = picturesDirectory.mkdirs()
+    private fun hasRequiredPermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun initializePhotoCapture() {
+        try {
+            val photoFile = createImageFile()
+            val photoUri = createPhotoUri(photoFile)
+
+            currentPhotoFile = photoFile
+            currentPhotoUri = photoUri
+
+            takePictureLauncher.launch(photoUri)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al inicializar captura de foto", e)
+            showErrorAndFinish("Error al inicializar la cámara")
+        }
+    }
+
+    private fun createImageFile(): File {
+        val picturesDirectory = getPicturesDirectory()
+        ensureDirectoryExists(picturesDirectory)
+
+        val fileName = generateUniqueFileName()
+        return File(picturesDirectory, fileName)
+    }
+
+    private fun getPicturesDirectory(): File {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Para Android 10+ usar directorio privado de la app
+            File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
+        } else {
+            // Para versiones anteriores usar directorio público
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
+        }
+    }
+
+    private fun ensureDirectoryExists(directory: File) {
+        if (!directory.exists()) {
+            val isCreated = directory.mkdirs()
             if (isCreated) {
-                Log.d("TomarFoto", "Carpeta creada en: ${picturesDirectory.absolutePath}")
+                Log.d(TAG, "Directorio creado: ${directory.absolutePath}")
             } else {
-                Log.d("TomarFoto", "No se pudo crear la carpeta: ${picturesDirectory.absolutePath}")
+                Log.w(TAG, "No se pudo crear el directorio: ${directory.absolutePath}")
+                throw IllegalStateException("No se pudo crear el directorio de imágenes")
             }
         }
+    }
 
-        // Crear el archivo y guardarlo en variable de clase
-        currentPhotoFile = File(picturesDirectory, "${System.currentTimeMillis()}.jpg")
+    private fun generateUniqueFileName(): String {
+        val timestamp = System.currentTimeMillis()
+        return "$timestamp$FILE_EXTENSION"
+    }
 
-        currentPhotoUri = FileProvider.getUriForFile(
+    private fun createPhotoUri(photoFile: File): Uri {
+        return FileProvider.getUriForFile(
             this,
-            "com.example.app_mosca.fileprovider",
-            currentPhotoFile // Usar la variable de clase
+            FILE_PROVIDER_AUTHORITY,
+            photoFile
         )
+    }
 
-        takePictureLauncher.launch(currentPhotoUri)
+    private fun handleCameraResult(isSuccess: Boolean) {
+        if (isSuccess) {
+            handleSuccessfulCapture()
+        } else {
+            handleCaptureError()
+        }
+    }
+
+    private fun handleSuccessfulCapture() {
+        val photoFile = currentPhotoFile
+        val photoUri = currentPhotoUri
+
+        if (photoFile == null || photoUri == null) {
+            Log.e(TAG, "Archivo o URI de foto es null")
+            showErrorAndFinish("Error interno al procesar la foto")
+            return
+        }
+
+        Log.d(TAG, "Foto capturada exitosamente: ${photoFile.absolutePath}")
+
+        if (photoFile.exists()) {
+            addImageToGallery(photoFile)
+            navigateToLoadingActivity(photoUri, photoFile)
+        } else {
+            Log.e(TAG, "El archivo de foto no existe: ${photoFile.absolutePath}")
+            showErrorAndFinish("La foto no se guardó correctamente")
+        }
+    }
+
+    private fun addImageToGallery(photoFile: File) {
+        MediaScannerConnection.scanFile(
+            this,
+            arrayOf(photoFile.absolutePath),
+            arrayOf(IMAGE_MIME_TYPE)
+        ) { path, uri ->
+            Log.d(TAG, "Imagen agregada a la galería: $path")
+        }
+    }
+
+    private fun navigateToLoadingActivity(photoUri: Uri, photoFile: File) {
+        val intent = Intent(this, LoadingActivity::class.java).apply {
+            putExtra(EXTRA_IMAGE_URI, photoUri.toString())
+            putExtra(EXTRA_IMAGE_PATH, photoFile.absolutePath)
+        }
+        startActivity(intent)
+        finish() // Finalizar esta actividad
+    }
+
+    private fun handleCaptureError() {
+        Log.w(TAG, "Error al capturar la foto")
+        showErrorAndFinish("Error al tomar la foto")
+    }
+
+    private fun showErrorAndFinish(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Limpiar referencias para evitar memory leaks
+        currentPhotoFile = null
+        currentPhotoUri = null
     }
 }
