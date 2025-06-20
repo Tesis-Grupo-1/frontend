@@ -26,6 +26,8 @@ import com.example.app_mosca.models.UploadResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.GlobalScope
 import java.util.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -91,19 +93,117 @@ class LoadingActivity : ComponentActivity() {
 
         if (imagePath == null) {
             showError("Error: No se recibió la ruta de la imagen.")
+            // ✅ CRÍTICO: Terminar la actividad si no hay imagen
+            finish()
             return
         }
 
+        // ✅ Inicializar imageFile ANTES de cualquier validación
         imageFile = File(imagePath)
 
-        if (!imageFile.exists()) {
-            showError("Error: El archivo no existe en: $imagePath")
-            Log.e(TAG, "Archivo no encontrado: $imagePath")
+        // ✅ VALIDACIÓN COMPLETA DE LA IMAGEN ALMACENADA
+        if (!validateStoredImage(imageFile)) {
+            // ✅ Si la validación falla, terminar la actividad
+            finish()
             return
         }
 
         val imageUri = Uri.parse(imageUriString)
-        Log.d(TAG, "Procesando imagen: $imagePath")
+        Log.d(TAG, "Imagen validada correctamente: $imagePath")
+    }
+
+    private fun validateStoredImage(imageFile: File): Boolean {
+        try {
+            // 1. Verificar que el archivo existe
+            if (!imageFile.exists()) {
+                showError("Error: El archivo de imagen no existe en: ${imageFile.absolutePath}")
+                Log.e(TAG, "Archivo no encontrado: ${imageFile.absolutePath}")
+                return false
+            }
+
+            // 2. Verificar que el archivo es legible
+            if (!imageFile.canRead()) {
+                showError("Error: No se puede leer el archivo de imagen.")
+                Log.e(TAG, "Archivo no legible: ${imageFile.absolutePath}")
+                return false
+            }
+
+            // 3. Verificar que el archivo no está vacío
+            if (imageFile.length() == 0L) {
+                showError("Error: El archivo de imagen está vacío.")
+                Log.e(TAG, "Archivo vacío: ${imageFile.absolutePath}")
+                return false
+            }
+
+            // 4. Verificar que el archivo tiene un tamaño razonable (no muy pequeño, no muy grande)
+            val fileSizeKB = imageFile.length() / 1024
+            if (fileSizeKB < 1) {
+                showError("Error: El archivo de imagen es demasiado pequeño.")
+                Log.e(TAG, "Archivo muy pequeño: ${fileSizeKB}KB")
+                return false
+            }
+            if (fileSizeKB > 10240) { // 10MB máximo
+                showError("Error: El archivo de imagen es demasiado grande (máximo 10MB).")
+                Log.e(TAG, "Archivo muy grande: ${fileSizeKB}KB")
+                return false
+            }
+
+            // 5. Verificar que es realmente una imagen válida
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true // Solo obtener dimensiones, no cargar la imagen completa
+            }
+
+            BitmapFactory.decodeFile(imageFile.absolutePath, options)
+
+            if (options.outWidth <= 0 || options.outHeight <= 0) {
+                showError("Error: El archivo no es una imagen válida o está corrupto.")
+                Log.e(TAG, "Imagen corrupta o inválida: ${imageFile.absolutePath}")
+                return false
+            }
+
+            // 6. Verificar dimensiones mínimas razonables
+            if (options.outWidth < 32 || options.outHeight < 32) {
+                showError("Error: La imagen es demasiado pequeña (mínimo 32x32 píxeles).")
+                Log.e(TAG, "Imagen muy pequeña: ${options.outWidth}x${options.outHeight}")
+                return false
+            }
+
+            // 7. Verificar tipo MIME si es posible
+            val mimeType = options.outMimeType
+            if (mimeType != null && !isValidImageMimeType(mimeType)) {
+                showError("Error: Formato de imagen no soportado: $mimeType")
+                Log.e(TAG, "Formato no soportado: $mimeType")
+                return false
+            }
+
+            // 8. Log de información de la imagen validada
+            Log.d(TAG, "✅ Imagen validada correctamente:")
+            Log.d(TAG, "  - Ruta: ${imageFile.absolutePath}")
+            Log.d(TAG, "  - Tamaño: ${fileSizeKB}KB")
+            Log.d(TAG, "  - Dimensiones: ${options.outWidth}x${options.outHeight}")
+            Log.d(TAG, "  - Tipo MIME: $mimeType")
+
+            return true
+
+        } catch (e: Exception) {
+            showError("Error al validar la imagen: ${e.localizedMessage}")
+            Log.e(TAG, "Error durante validación de imagen", e)
+            return false
+        }
+    }
+
+
+
+    private fun isValidImageMimeType(mimeType: String): Boolean {
+        val supportedTypes = listOf(
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "image/bmp"
+        )
+        return supportedTypes.contains(mimeType.lowercase())
     }
 
     private fun startImageProcessing() {
@@ -115,19 +215,23 @@ class LoadingActivity : ComponentActivity() {
                 modelManager.loadModels()
 
                 val imageUri = Uri.fromFile(imageFile)
-                // 1. Llama a la función y obtén el resultado del modelo
+                // 1. Procesamiento de la imagen con modelos
                 val modelPrediction = processImageWithModels(imageUri)
 
-                // 2. ASIGNA EL RESULTADO a la variable de estado de la actividad (ESTA ES LA CORRECCIÓN)
+                // 2. Asignar resultados
                 processingResult.finalLabel = modelPrediction.finalLabel
                 processingResult.confidence = modelPrediction.confidence
                 processingResult.plagaType = modelPrediction.plagaType
 
-                // 3. El resto del código ahora usará los valores correctos
+                // 3. Calcular tiempo de procesamiento
                 val processingTime = calculateProcessingTime()
                 processingResult.processingTime = processingTime
 
-                uploadAndSaveResults(processingTime)
+                // 4. Navegar inmediatamente a la pantalla de resultados
+                navigateToResultScreen(processingTime)
+
+                // 5. Subir datos de forma asíncrona en segundo plano
+                uploadDataInBackground(processingTime)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error durante el procesamiento", e)
@@ -169,24 +273,53 @@ class LoadingActivity : ComponentActivity() {
     }
 
     private suspend fun getBitmapFromUri(uri: Uri): Bitmap = withContext(Dispatchers.IO) {
-        contentResolver.openInputStream(uri)?.use { inputStream ->
-            BitmapFactory.decodeStream(inputStream)
-        } ?: throw IllegalStateException("Cannot decode bitmap from URI: $uri")
+        try {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                // Validación adicional del bitmap decodificado
+                if (bitmap == null) {
+                    throw IllegalStateException("No se pudo decodificar la imagen desde URI: $uri")
+                }
+
+                if (bitmap.isRecycled) {
+                    throw IllegalStateException("La imagen está corrupta o reciclada")
+                }
+
+                Log.d(TAG, "✅ Bitmap cargado exitosamente: ${bitmap.width}x${bitmap.height}")
+                bitmap
+
+            } ?: throw IllegalStateException("No se pudo abrir el stream de la imagen: $uri")
+
+        } catch (e: OutOfMemoryError) {
+            Log.e(TAG, "Error de memoria al cargar imagen", e)
+            throw IllegalStateException("La imagen es demasiado grande para procesar")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al cargar imagen desde URI", e)
+            throw IllegalStateException("Error al cargar la imagen: ${e.localizedMessage}")
+        }
     }
 
-    private suspend fun uploadAndSaveResults(processingTimeSeconds: Double) {
-        showProgress("Guardando resultados...")
+    // MÉTODO OPTIMIZADO: Subida asíncrona en segundo plano
+    private fun uploadDataInBackground(processingTimeSeconds: Double) {
+        // Usar GlobalScope para que continúe ejecutándose incluso después de que termine la actividad
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Iniciando subida de datos en segundo plano...")
 
-        try {
-            val imageId = apiManager.uploadImage(imageFile)
-            apiManager.saveDetection(imageId, processingResult, startTime, processingTimeSeconds)
+                // Subir imagen
+                val imageId = apiManager.uploadImage(imageFile)
+                Log.d(TAG, "Imagen subida exitosamente. ID: $imageId")
 
-            navigateToResultScreen(processingTimeSeconds)
+                // Guardar detección
+                apiManager.saveDetection(imageId, processingResult, startTime, processingTimeSeconds)
+                Log.d(TAG, "Detección guardada exitosamente")
 
-        } catch (e: Exception) {
-            Log.e(TAG, "Error en API, continuando con navegación", e)
-            // Continue with navigation even if API fails
-            navigateToResultScreen(processingTimeSeconds)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error durante la subida de datos en segundo plano", e)
+                // Aquí podrías implementar un sistema de reintentos o notificación al usuario
+                // Por ejemplo, guardar en una cola local para reintentar más tarde
+            }
         }
     }
 
@@ -349,7 +482,7 @@ object ImageProcessor {
     }
 }
 
-// Separate class for API management
+// CLASE OPTIMIZADA: ApiManager con manejo de errores mejorado
 class ApiManager {
     private val apiService = ApiClient.apiService
 

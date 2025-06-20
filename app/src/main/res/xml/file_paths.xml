@@ -1,8 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Directorio de archivos externos de la app -->
     <external-files-path
         name="my_images"
         path="." />
 
-    <cache-path name="internal_cache" path="."/>
+    <!-- Directorio de caché interno -->
+    <cache-path
+        name="internal_cache"
+        path="."/>
+
+    <!-- Directorio de caché para archivos temporales -->
+    <cache-path
+        name="temp_images"
+        path="temp_images"/>
+
+    <!-- Directorio externo de imágenes (Pictures) -->
+    <external-path
+        name="external_pictures"
+        path="Pictures/AppMosca" />
+
+    <!-- Directorio raíz del almacenamiento externo -->
+    <external-path
+        name="external_storage"
+        path="." />
 </paths>

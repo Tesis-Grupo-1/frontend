@@ -1,6 +1,7 @@
 package com.example.app_mosca.ui.theme
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Intent
 import com.example.app_mosca.R
 import android.content.pm.PackageManager
@@ -21,14 +22,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
-
-
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
 class TomarFoto : ComponentActivity() {
 
     companion object {
         private const val TAG = "TomarFoto"
-        private const val IMAGES_FOLDER = "images"
+        private const val IMAGES_FOLDER = "AppMosca"
         private const val IMAGE_MIME_TYPE = "image/jpeg"
         private const val FILE_EXTENSION = ".jpg"
         private const val FILE_PROVIDER_AUTHORITY = "com.example.app_mosca.fileprovider"
@@ -40,6 +41,7 @@ class TomarFoto : ComponentActivity() {
 
     private var currentPhotoUri: Uri? = null
     private var currentPhotoFile: File? = null
+    private var tempPhotoFile: File? = null
 
     // Usar lazy para inicializar el launcher
     private val takePictureLauncher by lazy {
@@ -67,10 +69,11 @@ class TomarFoto : ComponentActivity() {
 
     private fun initializePhotoCapture() {
         try {
-            val photoFile = createImageFile()
-            val photoUri = createPhotoUri(photoFile)
+            // Crear archivo temporal para la cámara
+            val tempFile = createTempImageFile()
+            val photoUri = createPhotoUri(tempFile)
 
-            currentPhotoFile = photoFile
+            tempPhotoFile = tempFile
             currentPhotoUri = photoUri
 
             takePictureLauncher.launch(photoUri)
@@ -80,39 +83,20 @@ class TomarFoto : ComponentActivity() {
         }
     }
 
-    private fun createImageFile(): File {
-        val picturesDirectory = getPicturesDirectory()
-        ensureDirectoryExists(picturesDirectory)
+    private fun createTempImageFile(): File {
+        // Crear archivo temporal en el directorio privado para la cámara
+        val tempDirectory = File(cacheDir, "temp_images")
+        if (!tempDirectory.exists()) {
+            tempDirectory.mkdirs()
+        }
 
         val fileName = generateUniqueFileName()
-        return File(picturesDirectory, fileName)
-    }
-
-    private fun getPicturesDirectory(): File {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Para Android 10+ usar directorio privado de la app
-            File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
-        } else {
-            // Para versiones anteriores usar directorio público
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
-        }
-    }
-
-    private fun ensureDirectoryExists(directory: File) {
-        if (!directory.exists()) {
-            val isCreated = directory.mkdirs()
-            if (isCreated) {
-                Log.d(TAG, "Directorio creado: ${directory.absolutePath}")
-            } else {
-                Log.w(TAG, "No se pudo crear el directorio: ${directory.absolutePath}")
-                throw IllegalStateException("No se pudo crear el directorio de imágenes")
-            }
-        }
+        return File(tempDirectory, fileName)
     }
 
     private fun generateUniqueFileName(): String {
         val timestamp = System.currentTimeMillis()
-        return "$timestamp$FILE_EXTENSION"
+        return "IMG_$timestamp$FILE_EXTENSION"
     }
 
     private fun createPhotoUri(photoFile: File): Uri {
@@ -132,33 +116,146 @@ class TomarFoto : ComponentActivity() {
     }
 
     private fun handleSuccessfulCapture() {
-        val photoFile = currentPhotoFile
-        val photoUri = currentPhotoUri
+        val tempFile = tempPhotoFile
 
-        if (photoFile == null || photoUri == null) {
-            Log.e(TAG, "Archivo o URI de foto es null")
+        if (tempFile == null || !tempFile.exists()) {
+            Log.e(TAG, "Archivo temporal es null o no existe")
             showErrorAndFinish("Error interno al procesar la foto")
             return
         }
 
-        Log.d(TAG, "Foto capturada exitosamente: ${photoFile.absolutePath}")
+        Log.d(TAG, "Foto capturada exitosamente: ${tempFile.absolutePath}")
 
-        if (photoFile.exists()) {
-            addImageToGallery(photoFile)
-            navigateToLoadingActivity(photoUri, photoFile)
-        } else {
-            Log.e(TAG, "El archivo de foto no existe: ${photoFile.absolutePath}")
-            showErrorAndFinish("La foto no se guardó correctamente")
+        try {
+            // Guardar la imagen en la galería y obtener el archivo final
+            val finalFile = saveImageToGallery(tempFile)
+            if (finalFile != null) {
+                currentPhotoFile = finalFile
+                navigateToLoadingActivity(Uri.fromFile(finalFile), finalFile)
+            } else {
+                showErrorAndFinish("Error al guardar la imagen en la galería")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al guardar imagen en galería", e)
+            showErrorAndFinish("Error al guardar la imagen")
+        } finally {
+            // Limpiar archivo temporal
+            tempFile.delete()
         }
     }
 
-    private fun addImageToGallery(photoFile: File) {
-        MediaScannerConnection.scanFile(
-            this,
-            arrayOf(photoFile.absolutePath),
-            arrayOf(IMAGE_MIME_TYPE)
-        ) { path, uri ->
-            Log.d(TAG, "Imagen agregada a la galería: $path")
+    private fun saveImageToGallery(tempFile: File): File? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveImageUsingMediaStore(tempFile)
+        } else {
+            saveImageToPublicDirectory(tempFile)
+        }
+    }
+
+    // Para Android 10+ (API 29+)
+    private fun saveImageUsingMediaStore(tempFile: File): File? {
+        return try {
+            val fileName = generateUniqueFileName()
+
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, IMAGE_MIME_TYPE)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/$IMAGES_FOLDER")
+            }
+
+            val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+            uri?.let { imageUri ->
+                contentResolver.openOutputStream(imageUri)?.use { outputStream ->
+                    FileInputStream(tempFile).use { inputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                // Obtener la ruta real del archivo guardado
+                val cursor = contentResolver.query(imageUri, arrayOf(MediaStore.Images.Media.DATA), null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val columnIndex = it.getColumnIndex(MediaStore.Images.Media.DATA)
+                        if (columnIndex != -1) {
+                            val filePath = it.getString(columnIndex)
+                            Log.d(TAG, "Imagen guardada en galería: $filePath")
+                            return File(filePath)
+                        }
+                    }
+                }
+
+                // Si no podemos obtener la ruta, crear una copia en directorio privado
+                return createPrivateCopy(tempFile)
+            }
+
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al guardar con MediaStore", e)
+            createPrivateCopy(tempFile)
+        }
+    }
+
+    // Para Android 9 y anteriores
+    private fun saveImageToPublicDirectory(tempFile: File): File? {
+        return try {
+            val picturesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
+
+            if (!picturesDir.exists()) {
+                picturesDir.mkdirs()
+            }
+
+            val fileName = generateUniqueFileName()
+            val finalFile = File(picturesDir, fileName)
+
+            // Copiar archivo temporal al directorio público
+            FileInputStream(tempFile).use { input ->
+                FileOutputStream(finalFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // Notificar al MediaScanner para que aparezca en la galería
+            MediaScannerConnection.scanFile(
+                this,
+                arrayOf(finalFile.absolutePath),
+                arrayOf(IMAGE_MIME_TYPE)
+            ) { path, uri ->
+                Log.d(TAG, "Imagen escaneada y agregada a galería: $path")
+            }
+
+            Log.d(TAG, "Imagen guardada en directorio público: ${finalFile.absolutePath}")
+            finalFile
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al guardar en directorio público", e)
+            createPrivateCopy(tempFile)
+        }
+    }
+
+    // Crear copia en directorio privado como respaldo
+    private fun createPrivateCopy(tempFile: File): File? {
+        return try {
+            val privateDir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), IMAGES_FOLDER)
+            if (!privateDir.exists()) {
+                privateDir.mkdirs()
+            }
+
+            val fileName = generateUniqueFileName()
+            val privateFile = File(privateDir, fileName)
+
+            FileInputStream(tempFile).use { input ->
+                FileOutputStream(privateFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            Log.d(TAG, "Imagen guardada en directorio privado: ${privateFile.absolutePath}")
+            privateFile
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al crear copia privada", e)
+            null
         }
     }
 
@@ -183,8 +280,16 @@ class TomarFoto : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Limpiar archivo temporal si existe
+        tempPhotoFile?.let { file ->
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+
         // Limpiar referencias para evitar memory leaks
         currentPhotoFile = null
         currentPhotoUri = null
+        tempPhotoFile = null
     }
 }
