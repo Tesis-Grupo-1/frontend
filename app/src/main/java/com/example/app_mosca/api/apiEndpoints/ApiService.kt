@@ -1,6 +1,7 @@
 package com.example.app_mosca.api.apiEndpoints
 
 import com.example.app_mosca.models.DetectionResponse
+import com.example.app_mosca.models.PestDetectionResponse
 import com.example.app_mosca.models.PlagaResponse
 import com.example.app_mosca.models.UploadResponse
 import okhttp3.MultipartBody
@@ -30,5 +31,13 @@ interface ApiService {
         @Field("time_final") time_final: String,
         @Field("date_detection") date_detection: String,
     ): Call<DetectionResponse>
+
+    @Multipart
+    @POST("detection/detect-pests")
+    fun detectPests(
+        @Part file: MultipartBody.Part,
+        @Part("return_image") returnImage: RequestBody
+    ): Call<PestDetectionResponse>
+
 
 }

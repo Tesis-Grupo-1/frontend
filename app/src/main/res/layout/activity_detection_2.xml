@@ -29,12 +29,21 @@
     <ImageView
         android:id="@+id/captured_image"
         android:layout_width="350dp"
-        android:layout_height="387dp"
+        android:layout_height="352dp"
         android:layout_gravity="center"
         android:layout_marginTop="30dp"
         android:contentDescription="Imagen capturada"
         android:scaleType="fitXY" />
 
+    <TextView
+        android:id="@+id/precision"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="Prediccion: 0.0"
+        android:textSize="16sp"
+        android:textColor="#000000"/>
 
 
     <TextView
@@ -46,14 +55,36 @@
         android:text="Tiempo de Detección: 0.0s"
         android:textSize="16sp"
         android:textColor="#000000"/>
-    <Button
-        android:id="@+id/button_regresar"
-        android:layout_width="150dp"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="20dp"
-        android:text="Regresar"
-        android:background="@drawable/button_rounded"
-        android:textColor="#FFFFFF" />
+        android:weightSum="2">
+
+        <!-- Botón de Regresar -->
+        <Button
+            android:id="@+id/button_regresar"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:text="Regresar"
+            android:background="@drawable/button_rounded"
+            android:textColor="#FFFFFF"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp" />
+
+        <!-- Botón de Ver Métricas -->
+        <Button
+            android:id="@+id/button_metricas"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:text="Ver Métricas"
+            android:background="@drawable/button_rounded"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="10dp" />
+    </LinearLayout>
 
 </LinearLayout>

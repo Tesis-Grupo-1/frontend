@@ -6,13 +6,19 @@
     <string name="error_opening_gallery">Error al abrir la galería</string>
     <string name="no_image_selected">No se seleccionó ninguna imagen</string>
     <string name="error_processing_image">Error al procesar la imagen: %1$s</string>
+    <string name="storage_permission_required">Permiso de almacenamiento requerido para acceder a la galería</string>
+    <string name="storage_permission_granted">Permiso de almacenamiento concedido</string>
+    <string name="camera_permission_granted">Permiso de cámara concedido</string>
 
     <!-- Strings adicionales que podrías necesitar -->
     <string name="loading">Cargando...</string>
     <string name="processing_image">Procesando imagen...</string>
     <string name="image_saved">Imagen guardada correctamente</string>
 
-    <string name="analysis_time_format">Tiempo de análisis: %ss</string>
+    <string name="analysis_time_format">Tiempo de Detección: %ss</string>
+    <string name="precision_format">Predicción: %s</string>
     <string name="error_loading_image">Error al cargar la imagen</string>
+
+
 
 </resources>

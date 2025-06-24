@@ -21,8 +21,12 @@ import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import com.example.app_mosca.R
 import com.example.app_mosca.api.apiClient.ApiClient
+import com.example.app_mosca.models.Detection
 import com.example.app_mosca.models.DetectionResponse
+import com.example.app_mosca.models.MetricsManager
+import com.example.app_mosca.models.PestDetectionResponse
 import com.example.app_mosca.models.UploadResponse
+import com.example.app_mosca.utils.ModelMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,10 +56,14 @@ class LoadingActivity : ComponentActivity() {
         // Intent extras
         const val EXTRA_IMAGE_FILE_PATH = "imageFilePath"
         const val EXTRA_PREDICTION = "prediction"
+        const val EXTRA_F1_SCORE = "f1score"
         const val EXTRA_PROCESSING_TIME = "processingTime"
         const val EXTRA_PLAGA_TYPE = "plagaType"
         const val EXTRA_DETECTED_OBJECT = "detectedObject"
         const val EXTRA_REASON = "reason"
+        const val EXTRA_PROCESSED_IMAGE_PATH = "processedImagePath" // Nueva constante para imagen procesada
+        const val EXTRA_API_DETECTIONS = "apiDetections" // Nueva constante para detecciones de la API
+        const val EXTRA_IMAGE_DIMENSIONS = "imageDimensions" // Nueva constante para dimensiones
     }
 
     // UI Components
@@ -66,6 +74,7 @@ class LoadingActivity : ComponentActivity() {
     private lateinit var imageFile: File
     private lateinit var modelManager: ModelManager
     private lateinit var apiManager: ApiManager
+    private lateinit var metricsManager: MetricsManager
 
     // State
     private var startTime: Long = 0
@@ -74,6 +83,8 @@ class LoadingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_loading)
+
+        metricsManager = MetricsManager(this)
 
         initializeComponents()
         processIntentData()
@@ -93,17 +104,13 @@ class LoadingActivity : ComponentActivity() {
 
         if (imagePath == null) {
             showError("Error: No se recibió la ruta de la imagen.")
-            // ✅ CRÍTICO: Terminar la actividad si no hay imagen
             finish()
             return
         }
 
-        // ✅ Inicializar imageFile ANTES de cualquier validación
         imageFile = File(imagePath)
 
-        // ✅ VALIDACIÓN COMPLETA DE LA IMAGEN ALMACENADA
         if (!validateStoredImage(imageFile)) {
-            // ✅ Si la validación falla, terminar la actividad
             finish()
             return
         }
@@ -114,28 +121,24 @@ class LoadingActivity : ComponentActivity() {
 
     private fun validateStoredImage(imageFile: File): Boolean {
         try {
-            // 1. Verificar que el archivo existe
             if (!imageFile.exists()) {
                 showError("Error: El archivo de imagen no existe en: ${imageFile.absolutePath}")
                 Log.e(TAG, "Archivo no encontrado: ${imageFile.absolutePath}")
                 return false
             }
 
-            // 2. Verificar que el archivo es legible
             if (!imageFile.canRead()) {
                 showError("Error: No se puede leer el archivo de imagen.")
                 Log.e(TAG, "Archivo no legible: ${imageFile.absolutePath}")
                 return false
             }
 
-            // 3. Verificar que el archivo no está vacío
             if (imageFile.length() == 0L) {
                 showError("Error: El archivo de imagen está vacío.")
                 Log.e(TAG, "Archivo vacío: ${imageFile.absolutePath}")
                 return false
             }
 
-            // 4. Verificar que el archivo tiene un tamaño razonable (no muy pequeño, no muy grande)
             val fileSizeKB = imageFile.length() / 1024
             if (fileSizeKB < 1) {
                 showError("Error: El archivo de imagen es demasiado pequeño.")
@@ -148,9 +151,8 @@ class LoadingActivity : ComponentActivity() {
                 return false
             }
 
-            // 5. Verificar que es realmente una imagen válida
             val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true // Solo obtener dimensiones, no cargar la imagen completa
+                inJustDecodeBounds = true
             }
 
             BitmapFactory.decodeFile(imageFile.absolutePath, options)
@@ -161,14 +163,12 @@ class LoadingActivity : ComponentActivity() {
                 return false
             }
 
-            // 6. Verificar dimensiones mínimas razonables
             if (options.outWidth < 32 || options.outHeight < 32) {
                 showError("Error: La imagen es demasiado pequeña (mínimo 32x32 píxeles).")
                 Log.e(TAG, "Imagen muy pequeña: ${options.outWidth}x${options.outHeight}")
                 return false
             }
 
-            // 7. Verificar tipo MIME si es posible
             val mimeType = options.outMimeType
             if (mimeType != null && !isValidImageMimeType(mimeType)) {
                 showError("Error: Formato de imagen no soportado: $mimeType")
@@ -176,7 +176,6 @@ class LoadingActivity : ComponentActivity() {
                 return false
             }
 
-            // 8. Log de información de la imagen validada
             Log.d(TAG, "✅ Imagen validada correctamente:")
             Log.d(TAG, "  - Ruta: ${imageFile.absolutePath}")
             Log.d(TAG, "  - Tamaño: ${fileSizeKB}KB")
@@ -191,8 +190,6 @@ class LoadingActivity : ComponentActivity() {
             return false
         }
     }
-
-
 
     private fun isValidImageMimeType(mimeType: String): Boolean {
         val supportedTypes = listOf(
@@ -227,10 +224,21 @@ class LoadingActivity : ComponentActivity() {
                 val processingTime = calculateProcessingTime()
                 processingResult.processingTime = processingTime
 
-                // 4. Navegar inmediatamente a la pantalla de resultados
-                navigateToResultScreen(processingTime)
+                val metrics = metricsManager.getMetricsForResult(processingResult.finalLabel)
+                Log.d(TAG, "Métricas obtenidas para '${processingResult.finalLabel}': ${metrics.toDisplayString()}")
 
-                // 5. Subir datos de forma asíncrona en segundo plano
+                // 4. Solo si se detecta plaga, enviar a la API de detección
+                if (processingResult.finalLabel == "plaga") {
+                    showProgress("Procesando imagen con IA...")
+                    val processedImagePath = sendImageToPestDetectionAPI()
+                    processingResult.processedImagePath = processedImagePath
+                    Log.d(TAG, "Imagen procesada por API de detección: $processedImagePath")
+                }
+
+                // 5. Navegar a la pantalla de resultados
+                navigateToResultScreen(processingTime, metrics)
+
+                // 6. Subir datos de forma asíncrona en segundo plano
                 uploadDataInBackground(processingTime)
 
             } catch (e: Exception) {
@@ -272,12 +280,65 @@ class LoadingActivity : ComponentActivity() {
         )
     }
 
+    // NUEVO MÉTODO: Enviar imagen a la API de detección de plagas
+    private suspend fun sendImageToPestDetectionAPI(): String? = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Enviando imagen a API de detección de plagas...")
+
+            val apiResponse = apiManager.detectPests(imageFile)
+
+            if (apiResponse.success) {
+                Log.d(TAG, "API Response - Message: ${apiResponse.message}")
+                Log.d(TAG, "Detecciones encontradas: ${apiResponse.detections?.size ?: 0}")
+
+                // Guardar información de detecciones
+                processingResult.apiDetections = apiResponse.detections
+                processingResult.imageWidth = apiResponse.image_width
+                processingResult.imageHeight = apiResponse.image_height
+
+                // Guardar imagen procesada desde base64
+                val processedImagePath = saveBase64Image(apiResponse.processed_image_base64)
+
+                Log.d(TAG, "Imagen procesada guardada en: $processedImagePath")
+                return@withContext processedImagePath
+            } else {
+                Log.w(TAG, "API no detectó plagas: ${apiResponse.message}")
+                return@withContext null
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al enviar imagen a API de detección", e)
+            // Si falla la API, continuamos sin la imagen procesada
+            return@withContext null
+        }
+    }
+
+    // NUEVO MÉTODO: Guardar imagen base64 como archivo
+    private suspend fun saveBase64Image(base64String: String): String = withContext(Dispatchers.IO) {
+        try {
+            // Decodificar base64
+            val imageBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+
+            // Crear archivo para la imagen procesada
+            val processedImageFile = File(cacheDir, "processed_${System.currentTimeMillis()}.jpg")
+
+            // Escribir bytes al archivo
+            processedImageFile.writeBytes(imageBytes)
+
+            Log.d(TAG, "Imagen base64 guardada como: ${processedImageFile.absolutePath}")
+            return@withContext processedImageFile.absolutePath
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al guardar imagen base64", e)
+            throw e
+        }
+    }
+
     private suspend fun getBitmapFromUri(uri: Uri): Bitmap = withContext(Dispatchers.IO) {
         try {
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 val bitmap = BitmapFactory.decodeStream(inputStream)
 
-                // Validación adicional del bitmap decodificado
                 if (bitmap == null) {
                     throw IllegalStateException("No se pudo decodificar la imagen desde URI: $uri")
                 }
@@ -300,9 +361,7 @@ class LoadingActivity : ComponentActivity() {
         }
     }
 
-    // MÉTODO OPTIMIZADO: Subida asíncrona en segundo plano
     private fun uploadDataInBackground(processingTimeSeconds: Double) {
-        // Usar GlobalScope para que continúe ejecutándose incluso después de que termine la actividad
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 Log.d(TAG, "Iniciando subida de datos en segundo plano...")
@@ -317,35 +376,66 @@ class LoadingActivity : ComponentActivity() {
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error durante la subida de datos en segundo plano", e)
-                // Aquí podrías implementar un sistema de reintentos o notificación al usuario
-                // Por ejemplo, guardar en una cola local para reintentar más tarde
             }
         }
     }
 
-    private fun navigateToResultScreen(processingTimeSeconds: Double) {
+    private fun navigateToResultScreen(processingTimeSeconds: Double, metrics: ModelMetrics) {
         val intent = when (processingResult.finalLabel) {
-            "plaga" -> createPlagaEncontradaIntent(processingTimeSeconds)
-            else -> createPlagaNoEncontradaIntent(processingTimeSeconds)
+            "plaga" -> createPlagaEncontradaIntent(processingTimeSeconds, metrics)
+            else -> createPlagaNoEncontradaIntent(processingTimeSeconds, metrics)
         }
 
         startActivity(intent)
         finish()
     }
 
-    private fun createPlagaEncontradaIntent(processingTimeSeconds: Double): Intent {
+    private fun createPlagaEncontradaIntent(processingTimeSeconds: Double, metrics: ModelMetrics): Intent {
         return Intent(this, PlagaEncontrada::class.java).apply {
-            putExtra(EXTRA_IMAGE_FILE_PATH, imageFile.absolutePath)
-            putExtra(EXTRA_PREDICTION, processingResult.confidence)
-            putExtra(EXTRA_PROCESSING_TIME, processingTimeSeconds)
-            putExtra(EXTRA_PLAGA_TYPE, processingResult.plagaType)
+            putExtra(PlagaEncontrada.EXTRA_IMAGE_FILE_PATH, imageFile.absolutePath)
+            putExtra(PlagaEncontrada.EXTRA_PREDICTION, processingResult.confidence)
+            putExtra(PlagaEncontrada.EXTRA_PROCESSING_TIME, processingTimeSeconds)
+            putExtra(PlagaEncontrada.EXTRA_F1_SCORE, (metrics.f1Score * 100).toDouble())
+            putExtra(PlagaEncontrada.EXTRA_ACCURACY, (metrics.accuracy * 100).toDouble())
+            putExtra(PlagaEncontrada.EXTRA_AUC, (metrics.auc * 100).toDouble())
+
+            // CORREGIDO: Usar la constante correcta de PlagaEncontrada
+            processingResult.processedImagePath?.let { processedPath ->
+                putExtra(PlagaEncontrada.EXTRA_PROCESSED_IMAGE_PATH, processedPath)
+                Log.d(TAG, "Enviando imagen procesada: $processedPath")
+            }
+
+            // Enviar información de detecciones de la API
+            processingResult.apiDetections?.let { detections ->
+
+                putExtra(EXTRA_IMAGE_DIMENSIONS, intArrayOf(
+                    processingResult.imageWidth ?: 0,
+                    processingResult.imageHeight ?: 0
+                ))
+                Log.d(TAG, "Enviando ${detections.size} detecciones de la API")
+            }
+
+            Log.d(TAG, "Enviando a PlagaEncontrada - Prediction: ${processingResult.confidence}, Processing Time: $processingTimeSeconds")
         }
     }
 
-    private fun createPlagaNoEncontradaIntent(processingTimeSeconds: Double): Intent {
+    private fun createPlagaNoEncontradaIntent(processingTimeSeconds: Double, metrics: ModelMetrics): Intent {
         return Intent(this, PlagaNoEncontrada::class.java).apply {
             putExtra(EXTRA_IMAGE_FILE_PATH, imageFile.absolutePath)
             putExtra(EXTRA_PROCESSING_TIME, processingTimeSeconds)
+            val finalPrediction = when (processingResult.finalLabel) {
+                "no_hojas" -> {
+                    processingResult.confidence
+                }
+                "sana" -> {
+                    1.0f - processingResult.confidence
+                }
+                else -> processingResult.confidence
+            }
+            putExtra(PlagaNoEncontrada.EXTRA_PREDICTION, finalPrediction)
+            putExtra(PlagaNoEncontrada.EXTRA_F1_SCORE, (metrics.f1Score * 100).toDouble())
+            putExtra(PlagaNoEncontrada.EXTRA_ACCURACY, (metrics.accuracy * 100).toDouble())
+            putExtra(PlagaNoEncontrada.EXTRA_AUC, (metrics.auc * 100).toDouble())
             putExtra(EXTRA_DETECTED_OBJECT, processingResult.finalLabel)
             putExtra(EXTRA_REASON, getReasonForResult(processingResult.finalLabel, processingResult.plagaType))
         }
@@ -389,7 +479,11 @@ class LoadingActivity : ComponentActivity() {
         var finalLabel: String = "",
         var confidence: Float = 0f,
         var plagaType: String = "",
-        var processingTime: Double = 0.0
+        var processingTime: Double = 0.0,
+        var processedImagePath: String? = null, // NUEVO: Ruta de imagen procesada
+        var apiDetections: List<Detection>? = null, // NUEVO: Detecciones de la API
+        var imageWidth: Int? = null, // NUEVO: Ancho de imagen
+        var imageHeight: Int? = null // NUEVO: Alto de imagen
     )
 
     data class ModelPredictionResult(
@@ -482,7 +576,7 @@ object ImageProcessor {
     }
 }
 
-// CLASE OPTIMIZADA: ApiManager con manejo de errores mejorado
+// CLASE OPTIMIZADA: ApiManager con nuevo método para detección de plagas
 class ApiManager {
     private val apiService = ApiClient.apiService
 
@@ -495,6 +589,20 @@ class ApiManager {
             response.body()?.id_image ?: throw Exception("No se obtuvo ID de imagen")
         } else {
             throw Exception("Error al subir imagen: ${response.message()}")
+        }
+    }
+
+    // NUEVO MÉTODO: Detectar plagas usando la API
+    suspend fun detectPests(imageFile: File): PestDetectionResponse = withContext(Dispatchers.IO) {
+        val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
+        val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
+        val returnImageBody = RequestBody.create("text/plain".toMediaType(), "true")
+
+        val response = apiService.detectPests(body, returnImageBody).execute()
+        if (response.isSuccessful) {
+            response.body() ?: throw Exception("Respuesta vacía de la API")
+        } else {
+            throw Exception("Error al detectar plagas: ${response.message()}")
         }
     }
 

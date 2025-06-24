@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -25,12 +26,13 @@ import java.io.File
 import java.io.FileNotFoundException
 
 
-class PlagaEncontrada : ComponentActivity() {
+class PlagaEncontrada : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PlagaEncontrada"
         private const val DEFAULT_PROCESSING_TIME = 0.0
         private const val TIME_FORMAT = "%.2f"
+        private const val DEFAULT_PRECISION = 0.0
 
         // Dimensiones para el redimensionado de imagen
         private const val DEFAULT_MAX_WIDTH = 290
@@ -39,19 +41,38 @@ class PlagaEncontrada : ComponentActivity() {
         // Extras del Intent
         const val EXTRA_PROCESSING_TIME = "processingTime"
         const val EXTRA_IMAGE_FILE_PATH = "imageFilePath"
+        const val EXTRA_PRECISION = "precisionporc"
+        const val EXTRA_PREDICTION = "prediction" // Añadido para compatibilidad
+        const val EXTRA_F1_SCORE = "f1Score" // Asegúrate de que esta constante esté definida
+        const val EXTRA_ACCURACY = "accuracy"
+        const val EXTRA_AUC = "auc"
+
+
+        const val EXTRA_PROCESSED_IMAGE_PATH = "processedImagePath"
     }
 
     // Views
     private lateinit var timeTakenTextView: TextView
+    private lateinit var precisionTextView: TextView
     private lateinit var imageView: ImageView
     private lateinit var regresarButton: Button
+    private lateinit var metricsButton: Button
+
+    private var f1Score: Double = 0.0
+    private var accuracy: Double = 0.0
+    private var auc: Double = 0.0
 
     // Datos
     private var processingTime: Double = DEFAULT_PROCESSING_TIME
+    private var predictionValue: Float = DEFAULT_PRECISION.toFloat()
     private var imagePath: String? = null
+    private var processedImagePath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        supportActionBar?.hide()
+
         setContentView(R.layout.activity_detection_2)
 
         initializeViews()
@@ -70,19 +91,36 @@ class PlagaEncontrada : ComponentActivity() {
 
     private fun initializeViews() {
         timeTakenTextView = findViewById(R.id.time_taken)
+        precisionTextView = findViewById(R.id.precision)
         imageView = findViewById(R.id.captured_image)
         regresarButton = findViewById(R.id.button_regresar)
+        metricsButton = findViewById(R.id.button_metricas)
     }
 
     private fun extractIntentData() {
         processingTime = intent.getDoubleExtra(EXTRA_PROCESSING_TIME, DEFAULT_PROCESSING_TIME)
         imagePath = intent.getStringExtra(EXTRA_IMAGE_FILE_PATH)
 
-        Log.d(TAG, "Processing time: $processingTime, Image path: $imagePath")
+        // NUEVO: Obtener la ruta de la imagen procesada
+        processedImagePath = intent.getStringExtra(EXTRA_PROCESSED_IMAGE_PATH)
+
+        // Obtener el valor de predicción de cualquiera de los dos extras posibles
+        predictionValue = intent.getFloatExtra(EXTRA_PREDICTION, DEFAULT_PRECISION.toFloat())
+        if (predictionValue == DEFAULT_PRECISION.toFloat()) {
+            predictionValue = intent.getDoubleExtra(EXTRA_PRECISION, DEFAULT_PRECISION).toFloat()
+        }
+
+        f1Score = intent.getDoubleExtra(EXTRA_F1_SCORE, 0.0)
+        accuracy = intent.getDoubleExtra(EXTRA_ACCURACY, 0.0)
+        auc = intent.getDoubleExtra(EXTRA_AUC, 0.0)
+
+        Log.d(TAG, "Processing time: $processingTime, Image path: $imagePath, Prediction: $predictionValue")
+        Log.d(TAG, "Processed image path: $processedImagePath") // NUEVO: Log para debug
     }
 
     private fun setupUI() {
         displayProcessingTime()
+        displayPrediction()
         loadAndDisplayImage()
     }
 
@@ -91,23 +129,39 @@ class PlagaEncontrada : ComponentActivity() {
         timeTakenTextView.text = getString(R.string.analysis_time_format, formattedTime)
     }
 
-    private fun loadAndDisplayImage() {
-        val path = imagePath
+    private fun displayPrediction() {
+        // Convertir a porcentaje y formatear
+        val predictionPercentage = (predictionValue * 100).toInt()
+        precisionTextView.text = "Predicción: $predictionPercentage%"
 
-        if (path.isNullOrEmpty()) {
+        Log.d(TAG, "Displaying prediction: $predictionValue -> $predictionPercentage%")
+    }
+
+    private fun loadAndDisplayImage() {
+        // MODIFICADO: Priorizar la imagen procesada si existe
+        val imageToLoad = processedImagePath ?: imagePath
+
+        if (imageToLoad.isNullOrEmpty()) {
             Log.w(TAG, "Ruta de imagen no proporcionada")
             handleImageLoadError()
             return
         }
 
-        if (!File(path).exists()) {
-            Log.e(TAG, "El archivo de imagen no existe: $path")
+        if (!File(imageToLoad).exists()) {
+            Log.e(TAG, "El archivo de imagen no existe: $imageToLoad")
+            // Si la imagen procesada no existe, intentar con la original
+            if (processedImagePath != null && imagePath != null && File(imagePath).exists()) {
+                Log.w(TAG, "Imagen procesada no encontrada, usando imagen original")
+                loadImageAsync(imagePath!!)
+                return
+            }
             handleImageLoadError()
             return
         }
 
         try {
-            loadImageAsync(path)
+            loadImageAsync(imageToLoad)
+            Log.d(TAG, "Mostrando imagen: ${if (processedImagePath != null) "procesada con bounding boxes" else "original"}")
         } catch (e: Exception) {
             Log.e(TAG, "Error al cargar la imagen", e)
             handleImageLoadError()
@@ -159,6 +213,20 @@ class PlagaEncontrada : ComponentActivity() {
     private fun setupClickListeners() {
         regresarButton.setOnClickListener {
             navigateToMainActivity()
+        }
+
+        metricsButton.setOnClickListener {
+            // Cargar las métricas antes de mostrar el modal
+            val metricsDialogFragment = MetricsDialogFragment().apply {
+                arguments = Bundle().apply {
+                    putDouble(MetricsDialogFragment.EXTRA_F1_SCORE, f1Score)
+                    putDouble(MetricsDialogFragment.EXTRA_ACCURACY, accuracy)
+                    putDouble(MetricsDialogFragment.EXTRA_AUC, auc)
+                }
+            }
+
+            // Mostrar el modal
+            metricsDialogFragment.show(supportFragmentManager, "metricsDialog")
         }
     }
 

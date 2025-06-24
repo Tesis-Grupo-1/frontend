@@ -15,22 +15,26 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.example.app_mosca.R
+import com.example.app_mosca.ui.theme.PlagaEncontrada.Companion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 
-class PlagaNoEncontrada : ComponentActivity() {
+class PlagaNoEncontrada : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PlagaNoEncontrada"
         private const val DEFAULT_PROCESSING_TIME = 0.0
+        private const val DEFAULT_PREDICTION = 0.0f
         private const val TIME_FORMAT = "%.2f"
+        private const val PREDICTION_FORMAT = "%.3f"
 
         // Dimensiones para el redimensionado de imagen
         private const val DEFAULT_MAX_WIDTH = 290
@@ -39,19 +43,39 @@ class PlagaNoEncontrada : ComponentActivity() {
         // Extras del Intent
         const val EXTRA_PROCESSING_TIME = "processingTime"
         const val EXTRA_IMAGE_FILE_PATH = "imageFilePath"
+        const val EXTRA_PREDICTION = "prediction"
+        const val EXTRA_DETECTED_OBJECT = "detectedObject"
+        const val EXTRA_REASON = "reason"
+
+        const val EXTRA_F1_SCORE = "f1Score" // Asegúrate de que esta constante esté definida
+        const val EXTRA_ACCURACY = "accuracy"
+        const val EXTRA_AUC = "auc"
     }
 
     // Views
     private lateinit var timeTakenTextView: TextView
+    private lateinit var predictionTextView: TextView
     private lateinit var imageView: ImageView
     private lateinit var regresarButton: Button
 
+    private lateinit var metricsButton: Button
+
     // Datos
     private var processingTime: Double = DEFAULT_PROCESSING_TIME
+    private var prediction: Float = DEFAULT_PREDICTION
     private var imagePath: String? = null
+    private var detectedObject: String = ""
+    private var reason: String = ""
+
+    private var f1Score: Double = 0.0
+    private var accuracy: Double = 0.0
+    private var auc: Double = 0.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        supportActionBar?.hide()
+
         setContentView(R.layout.activity_detection_1)
 
         initializeViews()
@@ -63,25 +87,50 @@ class PlagaNoEncontrada : ComponentActivity() {
 
     private fun initializeViews() {
         timeTakenTextView = findViewById(R.id.time_taken)
+        predictionTextView = findViewById(R.id.precision)
         imageView = findViewById(R.id.captured_image)
         regresarButton = findViewById(R.id.button_regresar)
+        metricsButton = findViewById(R.id.button_metricas)
     }
 
     private fun extractIntentData() {
         processingTime = intent.getDoubleExtra(EXTRA_PROCESSING_TIME, DEFAULT_PROCESSING_TIME)
+        prediction = intent.getFloatExtra(EXTRA_PREDICTION, DEFAULT_PREDICTION)
         imagePath = intent.getStringExtra(EXTRA_IMAGE_FILE_PATH)
+        detectedObject = intent.getStringExtra(EXTRA_DETECTED_OBJECT) ?: ""
+        reason = intent.getStringExtra(EXTRA_REASON) ?: ""
 
-        Log.d(TAG, "Processing time: $processingTime, Image path: $imagePath")
+        f1Score = intent.getDoubleExtra(EXTRA_F1_SCORE, 0.0)
+        accuracy = intent.getDoubleExtra(EXTRA_ACCURACY, 0.0)
+        auc = intent.getDoubleExtra(EXTRA_AUC, 0.0)
+
+        Log.d(TAG, "Datos recibidos:")
+        Log.d(TAG, "  - Processing time: $processingTime")
+        Log.d(TAG, "  - Prediction: $prediction")
+        Log.d(TAG, "  - Image path: $imagePath")
+        Log.d(TAG, "  - Detected object: $detectedObject")
+        Log.d(TAG, "  - Reason: $reason")
     }
 
     private fun setupUI() {
         displayProcessingTime()
+        displayPrediction()
         loadAndDisplayImage()
     }
 
     private fun displayProcessingTime() {
         val formattedTime = TIME_FORMAT.format(processingTime)
         timeTakenTextView.text = getString(R.string.analysis_time_format, formattedTime)
+    }
+
+    private fun displayPrediction() {
+        val formattedPrediction = PREDICTION_FORMAT.format(prediction)
+        val predictionPercentage = (prediction * 100).toInt()
+
+        // Mostrar tanto el valor decimal como el porcentaje para mayor claridad
+        predictionTextView.text = "Predicción: $formattedPrediction ($predictionPercentage%)"
+
+        Log.d(TAG, "Predicción mostrada: $formattedPrediction ($predictionPercentage%)")
     }
 
     private fun loadAndDisplayImage() {
@@ -152,6 +201,20 @@ class PlagaNoEncontrada : ComponentActivity() {
     private fun setupClickListeners() {
         regresarButton.setOnClickListener {
             navigateToMainActivity()
+        }
+
+        metricsButton.setOnClickListener {
+            // Cargar las métricas antes de mostrar el modal
+            val metricsDialogFragment = MetricsDialogFragment().apply {
+                arguments = Bundle().apply {
+                    putDouble(MetricsDialogFragment.EXTRA_F1_SCORE, f1Score)
+                    putDouble(MetricsDialogFragment.EXTRA_ACCURACY, accuracy)
+                    putDouble(MetricsDialogFragment.EXTRA_AUC, auc)
+                }
+            }
+
+            // Mostrar el modal
+            metricsDialogFragment.show(supportFragmentManager, "metricsDialog")
         }
     }
 

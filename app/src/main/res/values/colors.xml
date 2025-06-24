@@ -16,4 +16,22 @@
     <color name="error_background">#FFEBEE</color>
     <color name="error_border">#FFCDD2</color>
 
+    <color name="light_gray">#E0E0E0</color>
+
+    <!-- Colores para métricas card -->
+    <color name="light_blue">#F0F8FF</color>
+    <color name="blue_border">#4A90E2</color>
+
+    <!-- Colores para matriz de confusión -->
+    <color name="matrix_background">#F5F5F5</color>
+    <color name="matrix_border">#CCCCCC</color>
+
+    <!-- Colores de texto -->
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+
+    <!-- Colores para el botón -->
+    <color name="primary">#4A90E2</color>
+    <color name="primary_dark">#357ABD</color>
+
 </resources>

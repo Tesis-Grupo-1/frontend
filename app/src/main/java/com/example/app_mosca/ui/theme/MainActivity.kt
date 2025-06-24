@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -25,7 +26,8 @@ import java.io.InputStream
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+    private lateinit var cameraPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var storagePermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var galleryLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,17 +35,26 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
 
         initializeLaunchers()
-        requestCameraPermissionIfNeeded()
+        requestPermissionsIfNeeded()
         setupClickListeners()
     }
 
     private fun initializeLaunchers() {
-        permissionLauncher = registerForActivityResult(
+        // Launcher para permiso de cámara
+        cameraPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
-            handlePermissionResult(isGranted)
+            handleCameraPermissionResult(isGranted)
         }
 
+        // Launcher para permisos de almacenamiento (múltiples permisos)
+        storagePermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            handleStoragePermissionResult(permissions)
+        }
+
+        // Launcher para la galería
         galleryLauncher = registerForActivityResult(
             ActivityResultContracts.GetContent()
         ) { uri ->
@@ -51,19 +62,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestCameraPermissionIfNeeded() {
+    private fun requestPermissionsIfNeeded() {
+        // Verificar permisos de cámara
         if (!isCameraPermissionGranted()) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+
+        // Verificar permisos de almacenamiento
+        if (!isStoragePermissionGranted()) {
+            requestStoragePermissions()
         }
     }
 
     private fun setupClickListeners() {
         findViewById<android.widget.Button>(R.id.tomarfoto).setOnClickListener {
-            navigateToCamera()
+            if (isCameraPermissionGranted()) {
+                navigateToCamera()
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
 
         findViewById<android.widget.Button>(R.id.galeria).setOnClickListener {
-            openGallery()
+            if (isStoragePermissionGranted()) {
+                openGallery()
+            } else {
+                requestStoragePermissions()
+            }
         }
     }
 
@@ -74,10 +99,53 @@ class MainActivity : ComponentActivity() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun handlePermissionResult(isGranted: Boolean) {
-        if (!isGranted) {
-            showToast(getString(R.string.camera_permission_required))
+    private fun isStoragePermissionGranted(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ (API 33+) - Solo necesita READ_MEDIA_IMAGES para leer imágenes
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            // Android 12 y anteriores - Necesita READ_EXTERNAL_STORAGE
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestStoragePermissions() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ (API 33+)
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            // Android 12 y anteriores
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+        storagePermissionLauncher.launch(permissions)
+    }
+
+    private fun handleCameraPermissionResult(isGranted: Boolean) {
+        if (isGranted) {
+            Log.d(TAG, "Camera permission granted")
+            showToast(getString(R.string.camera_permission_granted))
+        } else {
             Log.w(TAG, "Camera permission denied by user")
+            showToast(getString(R.string.camera_permission_required))
+        }
+    }
+
+    private fun handleStoragePermissionResult(permissions: Map<String, Boolean>) {
+        val isGranted = permissions.values.all { it }
+
+        if (isGranted) {
+            Log.d(TAG, "Storage permission granted")
+            showToast(getString(R.string.storage_permission_granted))
+        } else {
+            Log.w(TAG, "Storage permission denied by user")
+            showToast(getString(R.string.storage_permission_required))
         }
     }
 
@@ -204,7 +272,7 @@ class MainActivity : ComponentActivity() {
         private const val IMAGE_MIME_TYPE = "image/*"
         private const val TEMP_FILE_PREFIX = "temp_gallery_image_"
         private const val TEMP_FILE_EXTENSION = ".jpg"
-        private const val BUFFER_SIZE = 8192 // Increased buffer size for better performance
+        private const val BUFFER_SIZE = 8192
 
         // Constants for intent extras
         const val EXTRA_IMAGE_PATH = "imagePath"
