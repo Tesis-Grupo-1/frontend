@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "http://minascan.duckdns.org/" // Reemplaza con la URL base de tu API
+    private const val BASE_URL = "https://minascan.duckdns.org/" // Reemplaza con la URL base de tu API
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY // Muestra todo el cuerpo de la solicitud/respuesta
