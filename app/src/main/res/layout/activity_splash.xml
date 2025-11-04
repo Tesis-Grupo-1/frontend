@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/login_background">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- Logo o icono de la app -->
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_launcher_foreground"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Título de la app -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MINASCAN"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="#2E7D32"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Subtítulo -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Detección inteligente de plagas"
+            android:textSize="16sp"
+            android:textColor="#66BB6A"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Progress bar -->
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateTint="#4CAF50" />
+
+    </LinearLayout>
+
+    <!-- Versión en la parte inferior -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Versión 2.1.5"
+        android:textSize="12sp"
+        android:textColor="#AAAAAA"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp" />
+
+</RelativeLayout>

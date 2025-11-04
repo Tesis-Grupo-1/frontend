@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_image"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Contenedor de imagen con overlay de iconos -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="180dp">
+
+            <ImageView
+                android:id="@+id/iv_detection_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="Imagen de detección" />
+
+            <!-- Overlay con porcentaje -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/percentage_badge_background"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/tv_percentage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0%"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Icono de validada -->
+            <ImageView
+                android:id="@+id/icon_validated"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_green_background"
+                android:padding="6dp"
+                android:src="@drawable/ic_check_circle"
+                android:tint="#FFFFFF"
+                android:visibility="gone" />
+
+            <!-- Icono de falso positivo -->
+            <ImageView
+                android:id="@+id/icon_false_positive"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_margin="8dp"
+                android:background="@drawable/circle_red_background"
+                android:padding="6dp"
+                android:src="@drawable/ic_warning"
+                android:tint="#FFFFFF"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+        <!-- Información y botón -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Sin validar"
+                android:textColor="#666666"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_validate"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:backgroundTint="@color/primary_green"
+                android:text="VALIDAR"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="18dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

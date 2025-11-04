@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <!-- Toolbar/Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#4CAF50"
+        android:elevation="4dp"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Botón Atrás -->
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="#FFFFFF"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="16dp" />
+
+        <!-- Título -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Historial de Detecciones"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Filtro -->
+        <ImageView
+            android:id="@+id/filter_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_filter"
+            android:tint="#FFFFFF"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- Estadísticas rápidas -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:elevation="2dp"
+        android:layout_marginBottom="8dp">
+
+        <!-- Total detecciones -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/total_detections"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#4CAF50" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total"
+                android:textSize="12sp"
+                android:textColor="#666666" />
+
+        </LinearLayout>
+
+        <!-- Divider vertical -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:background="#E0E0E0" />
+
+        <!-- Este mes -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/monthly_detections"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#FF9800" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Este mes"
+                android:textSize="12sp"
+                android:textColor="#666666" />
+
+        </LinearLayout>
+
+        <!-- Divider vertical -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:background="#E0E0E0" />
+
+        <!-- Plagas encontradas -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/pests_found"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#F44336" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plagas"
+                android:textSize="12sp"
+                android:textColor="#666666" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ProgressBar para carga -->
+    <ProgressBar
+        android:id="@+id/progress_detections"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="32dp"
+        android:visibility="gone" />
+
+    <!-- Lista de detecciones -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/detections_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        android:scrollbars="vertical" />
+
+    <!-- Estado vacío (cuando no hay detecciones) -->
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_history_empty"
+            android:tint="#CCCCCC"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No tienes detecciones aún"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Realiza tu primera detección para ver el historial aquí"
+            android:textSize="14sp"
+            android:textColor="#999999"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/start_detection_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="INICIAR DETECCIÓN"
+            android:textStyle="bold"
+            android:backgroundTint="#4CAF50"
+            app:cornerRadius="24dp"
+            app:icon="@drawable/ic_camera"
+            app:iconTint="#FFFFFF" />
+
+    </LinearLayout>
+
+</LinearLayout>

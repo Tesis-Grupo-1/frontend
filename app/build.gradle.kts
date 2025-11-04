@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -12,8 +11,8 @@ android {
         applicationId = "com.example.app_mosca"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "2.1.4"
+        versionCode = 6
+        versionName = "1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,9 +33,11 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
-        compose = true
+        viewBinding = true
     }
+
 }
 
 dependencies {
@@ -54,9 +55,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
+    implementation("androidx.fragment:fragment-ktx:1.8.1")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
     implementation("com.github.bumptech.glide:glide:4.15.1")
+    implementation("com.google.android.material:material:1.10.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -69,5 +71,14 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
+    implementation("androidx.databinding:viewbinding:8.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.android.material:material:1.11.0")
 
 }

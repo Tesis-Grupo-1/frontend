@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Tema base -->
+    <style name="Theme.AppMosca" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#4CAF50</item>
+        <item name="colorPrimaryVariant">#2E7D32</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">#66BB6A</item>
+        <item name="colorSecondaryVariant">#4CAF50</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Tema para SplashActivity -->
+    <style name="Theme.AppMosca.Splash" parent="Theme.AppMosca">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Tema para LoginActivity -->
+    <style name="Theme.AppMosca.Login" parent="Theme.AppMosca">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+</resources>

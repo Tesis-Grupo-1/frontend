@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -17,8 +20,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.App_Mosca"
-        tools:targetApi="31">
+        android:theme="@style/Theme.AppMosca"
+        tools:targetApi="31"
+        android:usesCleartextTraffic="true">
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -30,31 +34,71 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-
         <activity
-            android:name=".ui.theme.MainActivity"
+            android:name=".SplashActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.App_Mosca">
+            android:theme="@style/Theme.AppMosca.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.theme.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.theme.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
         <activity
             android:name=".ui.theme.TomarFoto"
-            android:theme="@style/Theme.AppCompat.Light">
-        </activity>
-        <activity android:name=".ui.theme.PlagaEncontrada"
-            android:theme="@style/Theme.AppCompat.Light">
-        </activity>
-        <activity android:name=".ui.theme.PlagaNoEncontrada"
-            android:theme="@style/Theme.AppCompat.Light">
-        </activity>
-        <activity android:name=".ui.theme.LoadingActivity"
-            android:theme="@style/Theme.AppCompat.Light">
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.PlagaEncontrada"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.PlagaNoEncontrada"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.LoadingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.EscanearPlagas"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.ReporteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
+            android:name=".ui.theme.HistorialActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca"/>
+
+        <activity
+            android:name=".ui.theme.DetectionDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca"/>
+
+        <activity
+            android:name=".ui.theme.DetectionImagesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
     </application>
 
 </manifest>

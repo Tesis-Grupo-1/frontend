@@ -1,41 +1,312 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
 
-    <TextView
+    <!-- Contenido principal -->
+    <LinearLayout
+        android:id="@+id/main_content"
         android:layout_width="match_parent"
-        android:layout_height="108dp"
-        android:background="@drawable/rounded_background"
-        android:gravity="center"
-        android:padding="20dp"
-        android:text="MINASCAN"
-        android:textColor="#FFFFFF"
-        android:textSize="24sp" />
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom_navigation"
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/tomarfoto"
-        android:layout_width="149dp"
+        <!-- Header mejorado -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/header_gradient_background"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:elevation="8dp">
+
+            <!-- Logo y título -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MINASCAN"
+                    android:textColor="#FFFFFF"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Detección inteligente de plagas"
+                    android:textColor="#E8F5E8"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Área de campos registrados -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Título de sección -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mis Cultivos"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Indicador de carga -->
+            <ProgressBar
+                android:id="@+id/progress_fields"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <!-- RecyclerView para mostrar campos -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_fields"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone" />
+
+            <!-- Estado vacío cuando no hay campos -->
+            <LinearLayout
+                android:id="@+id/empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_plant_scan"
+                    android:tint="#CCCCCC"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No tienes campos registrados"
+                    android:textSize="16sp"
+                    android:textColor="#666666"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Crea tu primer campo para comenzar"
+                    android:textSize="14sp"
+                    android:textColor="#999999"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp" />
+
+            </LinearLayout>
+
+            <!-- Botón para crear nuevo campo -->
+            <Button
+                android:id="@+id/btn_create_field"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="CREAR NUEVO CAMPO"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#4CAF50"
+                app:cornerRadius="8dp"
+                app:icon="@drawable/ic_add"
+                app:iconSize="24dp"
+                app:iconTint="#FFFFFF"
+                android:layout_marginBottom="8dp"
+                app:rippleColor="#2E7D32" />
+
+            <!-- Botón para comenzar escaneo (solo visible cuando hay campo seleccionado) -->
+            <Button
+                android:id="@+id/btn_start_scan"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="COMENZAR ESCANEO"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#FF5722"
+                app:cornerRadius="8dp"
+                app:icon="@drawable/ic_scanner"
+                app:iconSize="24dp"
+                app:iconTint="#FFFFFF"
+                android:visibility="gone"
+                app:rippleColor="#D84315" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Barra de navegación inferior -->
+    <LinearLayout
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="250dp"
-        android:background="@drawable/button_rounded2"
-        android:text="Tomar Foto"
-        android:textColor="#FFFFFF"
-        android:stateListAnimator="@animator/button_press" />
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
-    <Button
-        android:id="@+id/galeria"
-        android:layout_width="149dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="50dp"
-        android:background="@drawable/button_rounded2"
-        android:text="Seleccionar de Galería"
-        android:textSize="16sp"
-        android:padding="12dp"
-        android:textColor="#FFFFFF"
-        android:stateListAnimator="@animator/button_press" />
+        <!-- Botón Inicio -->
+        <LinearLayout
+            android:id="@+id/nav_home"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
 
-</LinearLayout>
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_home"
+                android:tint="#4CAF50" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inicio"
+                android:textSize="12sp"
+                android:textColor="#4CAF50"
+                android:textStyle="bold"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <!-- Botón Historial -->
+        <LinearLayout
+            android:id="@+id/nav_history"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_history"
+                android:tint="#666666" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Historial"
+                android:textSize="12sp"
+                android:textColor="#666666"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <!-- Botón Análisis (central destacado) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/nav_scan"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_margin="8dp"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="#4CAF50"
+            android:clickable="true"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_scanner"
+                android:tint="#FFFFFF" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Botón Configuración -->
+        <LinearLayout
+            android:id="@+id/nav_perfil"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_settings"
+                android:tint="#666666" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Perfil"
+                android:textSize="12sp"
+                android:textColor="#666666"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <!-- Botón Cerrar Sesión -->
+        <LinearLayout
+            android:id="@+id/nav_logout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_logout"
+                android:tint="#F44336" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Salir"
+                android:textSize="12sp"
+                android:textColor="#F44336"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

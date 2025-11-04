@@ -14,7 +14,7 @@
 
     <!-- Colores para estado de error -->
     <color name="error_background">#FFEBEE</color>
-    <color name="error_border">#FFCDD2</color>
+    <color name="error_border">#F8AEB5</color>
 
     <color name="light_gray">#E0E0E0</color>
 
@@ -25,6 +25,7 @@
     <!-- Colores para matriz de confusión -->
     <color name="matrix_background">#F5F5F5</color>
     <color name="matrix_border">#CCCCCC</color>
+    <color name="selected_overlay">#D0F0C0</color>
 
     <!-- Colores de texto -->
     <color name="primary_text">#212121</color>
@@ -33,5 +34,47 @@
     <!-- Colores para el botón -->
     <color name="primary">#4A90E2</color>
     <color name="primary_dark">#357ABD</color>
+
+
+    <color name="minascan_primary">#4CAF50</color>
+    <color name="minascan_primary_dark">#2E7D32</color>
+    <color name="minascan_secondary">#66BB6A</color>
+    <color name="minascan_accent">#8BC34A</color>
+
+    <!-- Colores de estado -->
+    <color name="success_green">#4CAF50</color>
+    <color name="error_red">#F44336</color>
+    <color name="warning_orange">#FF9800</color>
+    <color name="info_blue">#2196F3</color>
+
+    <!-- Colores de texto -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#383838</color>
+
+    <!-- Colores de fondo -->
+    <color name="background_light">#FAFAFA</color>
+    <color name="background_white">#FFFFFF</color>
+    <color name="background_gray">#F5F5F5</color>
+
+
+    <color name="primary_green">#4CAF50</color>
+    <color name="dark_green">#2E7D32</color>
+    <color name="light_green_background">#E8F5E8</color>
+
+    <!-- Colores de texto -->
+    <color name="dark_text">#333333</color>
+    <color name="hint_text">#999999</color>
+
+
+    <color name="selected_field_background">#F1F8E9</color>
+
+    <!-- Colores de estado -->
+    <color name="green">#4CAF50</color>
+    <color name="red">#F44336</color>
+    <color name="orange">#FF5722</color>
+    <color name="light_green">#C8E6C9</color>
+    <color name="gray">#E0E0E0</color>
+
 
 </resources>

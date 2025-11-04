@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_field"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/light_gray"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header con nombre del campo e indicador de selección -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/tv_field_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@+id/tv_selected_indicator"
+                android:text="Nombre del Campo"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/dark_text"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/tv_selected_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="✓ SELECCIONADO"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_green"
+                android:background="@drawable/selected_indicator_background"
+                android:padding="4dp"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+        <!-- Información del campo -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Ícono de tamaño -->
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_area"
+                android:tint="@color/secondary_text" />
+
+            <TextView
+                android:id="@+id/tv_field_size"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="2.5 hectáreas"
+                android:textSize="14sp"
+                android:textColor="@color/secondary_text" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Ícono de tamaño -->
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_plant_scan"
+                android:tint="@color/secondary_text" />
+
+            <TextView
+                android:id="@+id/tv_plant_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 plantas"
+                android:textSize="14sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Ubicación -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Ícono de ubicación -->
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_location"
+                android:tint="@color/secondary_text" />
+
+            <TextView
+                android:id="@+id/tv_field_location"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Ubicación del campo"
+                android:textSize="14sp"
+                android:textColor="@color/secondary_text" />
+
+        </LinearLayout>
+
+        <!-- Descripción (opcional) -->
+        <TextView
+            android:id="@+id/tv_field_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Descripción del campo"
+            android:textSize="13sp"
+            android:textColor="@color/secondary_text"
+            android:textStyle="italic"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- Línea divisoria sutil -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/light_gray"
+            android:layout_marginTop="8dp"
+            android:alpha="0.3" />
+
+        <!-- Información adicional -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Toca para seleccionar este campo"
+            android:textSize="11sp"
+            android:textColor="@color/hint_text"
+            android:gravity="center"
+            android:layout_marginTop="6dp"
+            android:alpha="0.7" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

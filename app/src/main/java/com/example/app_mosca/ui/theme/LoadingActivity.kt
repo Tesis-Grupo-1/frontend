@@ -1,9 +1,13 @@
 package com.example.app_mosca.ui.theme
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -37,8 +41,11 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.InputStream
 import java.text.SimpleDateFormat
 
@@ -61,9 +68,9 @@ class LoadingActivity : ComponentActivity() {
         const val EXTRA_PLAGA_TYPE = "plagaType"
         const val EXTRA_DETECTED_OBJECT = "detectedObject"
         const val EXTRA_REASON = "reason"
-        const val EXTRA_PROCESSED_IMAGE_PATH = "processedImagePath" // Nueva constante para imagen procesada
-        const val EXTRA_API_DETECTIONS = "apiDetections" // Nueva constante para detecciones de la API
-        const val EXTRA_IMAGE_DIMENSIONS = "imageDimensions" // Nueva constante para dimensiones
+        const val EXTRA_PROCESSED_IMAGE_PATH = "processedImagePath"
+        const val EXTRA_API_DETECTIONS = "apiDetections"
+        const val EXTRA_IMAGE_DIMENSIONS = "imageDimensions"
     }
 
     // UI Components
@@ -79,6 +86,7 @@ class LoadingActivity : ComponentActivity() {
     // State
     private var startTime: Long = 0
     private var processingResult = ProcessingResult()
+    private var hasInternetConnection = false // Nueva variable para estado de conexión
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +104,45 @@ class LoadingActivity : ComponentActivity() {
         loadingText = findViewById(R.id.loadingText)
         modelManager = ModelManager(this)
         apiManager = ApiManager()
+
+        // Verificar conexión a internet al inicializar
+        hasInternetConnection = checkInternetConnection()
+        Log.d(TAG, "Estado de conexión a internet: $hasInternetConnection")
+    }
+
+    // NUEVO MÉTODO: Verificar conexión a internet
+    private fun checkInternetConnection(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo
+            networkInfo != null && networkInfo.isConnected
+        }
+    }
+
+    // NUEVO MÉTODO: Verificar conexión en tiempo real
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo
+            networkInfo != null && networkInfo.isConnected
+        }
     }
 
     private fun processIntentData() {
@@ -207,8 +254,17 @@ class LoadingActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 startTime = System.currentTimeMillis()
-                showProgress("Cargando modelos...")
 
+                // Verificar conexión al inicio del procesamiento
+                hasInternetConnection = isInternetAvailable()
+
+                if (hasInternetConnection) {
+                    Log.d(TAG, "✅ Conexión a internet disponible - Las APIs serán utilizadas")
+                } else {
+                    Log.w(TAG, "⚠️ Sin conexión a internet - Solo procesamiento local")
+                }
+
+                showProgress("Cargando modelos...")
                 modelManager.loadModels()
 
                 val imageUri = Uri.fromFile(imageFile)
@@ -227,19 +283,25 @@ class LoadingActivity : ComponentActivity() {
                 val metrics = metricsManager.getMetricsForResult(processingResult.finalLabel)
                 Log.d(TAG, "Métricas obtenidas para '${processingResult.finalLabel}': ${metrics.toDisplayString()}")
 
-                // 4. Solo si se detecta plaga, enviar a la API de detección
-                if (processingResult.finalLabel == "plaga") {
+                // 4. Solo si se detecta plaga Y hay conexión, enviar a la API de detección
+                if (processingResult.finalLabel == "plaga" && hasInternetConnection) {
                     showProgress("Procesando imagen con IA...")
                     val processedImagePath = sendImageToPestDetectionAPI()
                     processingResult.processedImagePath = processedImagePath
                     Log.d(TAG, "Imagen procesada por API de detección: $processedImagePath")
+                } else if (processingResult.finalLabel == "plaga" && !hasInternetConnection) {
+                    Log.w(TAG, "Plaga detectada pero sin conexión - Saltando API de detección")
                 }
 
                 // 5. Navegar a la pantalla de resultados
                 navigateToResultScreen(processingTime, metrics)
 
-                // 6. Subir datos de forma asíncrona en segundo plano
-                uploadDataInBackground(processingTime)
+                // 6. Subir datos solo si hay conexión a internet
+                if (hasInternetConnection) {
+                    uploadDataInBackground(processingTime)
+                } else {
+                    Log.w(TAG, "Sin conexión - Saltando subida de datos")
+                }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error durante el procesamiento", e)
@@ -280,9 +342,15 @@ class LoadingActivity : ComponentActivity() {
         )
     }
 
-    // NUEVO MÉTODO: Enviar imagen a la API de detección de plagas
+    // MÉTODO MODIFICADO: Enviar imagen a la API solo si hay conexión
     private suspend fun sendImageToPestDetectionAPI(): String? = withContext(Dispatchers.IO) {
         try {
+            // Verificar conexión antes de enviar
+            if (!isInternetAvailable()) {
+                Log.w(TAG, "Sin conexión a internet - No se puede enviar imagen a la API")
+                return@withContext null
+            }
+
             Log.d(TAG, "Enviando imagen a API de detección de plagas...")
 
             val apiResponse = apiManager.detectPests(imageFile)
@@ -313,7 +381,7 @@ class LoadingActivity : ComponentActivity() {
         }
     }
 
-    // NUEVO MÉTODO: Guardar imagen base64 como archivo
+    // MÉTODO MODIFICADO: Guardar imagen base64 como archivo
     private suspend fun saveBase64Image(base64String: String): String = withContext(Dispatchers.IO) {
         try {
             // Decodificar base64
@@ -361,9 +429,22 @@ class LoadingActivity : ComponentActivity() {
         }
     }
 
+    // MÉTODO MODIFICADO: Subir datos solo si hay conexión
     private fun uploadDataInBackground(processingTimeSeconds: Double) {
+        // Solo ejecutar si hay conexión a internet
+        if (!hasInternetConnection) {
+            Log.w(TAG, "Sin conexión a internet - No se subirán los datos")
+            return
+        }
+
         GlobalScope.launch(Dispatchers.IO) {
             try {
+                // Verificar conexión una vez más antes de subir
+                if (!isInternetAvailable()) {
+                    Log.w(TAG, "Conexión perdida durante el procesamiento - No se subirán los datos")
+                    return@launch
+                }
+
                 Log.d(TAG, "Iniciando subida de datos en segundo plano...")
 
                 // Subir imagen
@@ -376,6 +457,7 @@ class LoadingActivity : ComponentActivity() {
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error durante la subida de datos en segundo plano", e)
+                // Podríamos implementar aquí un sistema de reintento o guardado local
             }
         }
     }
@@ -399,20 +481,21 @@ class LoadingActivity : ComponentActivity() {
             putExtra(PlagaEncontrada.EXTRA_ACCURACY, (metrics.accuracy * 100).toDouble())
             putExtra(PlagaEncontrada.EXTRA_AUC, (metrics.auc * 100).toDouble())
 
-            // CORREGIDO: Usar la constante correcta de PlagaEncontrada
+            // Solo enviar imagen procesada si hay conexión y se procesó
             processingResult.processedImagePath?.let { processedPath ->
                 putExtra(PlagaEncontrada.EXTRA_PROCESSED_IMAGE_PATH, processedPath)
                 Log.d(TAG, "Enviando imagen procesada: $processedPath")
             }
 
-            // Enviar información de detecciones de la API
-            processingResult.apiDetections?.let { detections ->
-
-                putExtra(EXTRA_IMAGE_DIMENSIONS, intArrayOf(
-                    processingResult.imageWidth ?: 0,
-                    processingResult.imageHeight ?: 0
-                ))
-                Log.d(TAG, "Enviando ${detections.size} detecciones de la API")
+            // Enviar información de detecciones de la API solo si hay conexión
+            if (hasInternetConnection) {
+                processingResult.apiDetections?.let { detections ->
+                    putExtra(EXTRA_IMAGE_DIMENSIONS, intArrayOf(
+                        processingResult.imageWidth ?: 0,
+                        processingResult.imageHeight ?: 0
+                    ))
+                    Log.d(TAG, "Enviando ${detections.size} detecciones de la API")
+                }
             }
 
             Log.d(TAG, "Enviando a PlagaEncontrada - Prediction: ${processingResult.confidence}, Processing Time: $processingTimeSeconds")
@@ -456,7 +539,9 @@ class LoadingActivity : ComponentActivity() {
 
     private suspend fun showProgress(message: String) {
         withContext(Dispatchers.Main) {
-            loadingText.text = message
+            // Mostrar estado de conexión en el mensaje de progreso
+            val connectionStatus = if (hasInternetConnection) "" else " (Sin conexión)"
+            loadingText.text = "$message$connectionStatus"
             progressBar.visibility = View.VISIBLE
         }
     }
@@ -480,10 +565,10 @@ class LoadingActivity : ComponentActivity() {
         var confidence: Float = 0f,
         var plagaType: String = "",
         var processingTime: Double = 0.0,
-        var processedImagePath: String? = null, // NUEVO: Ruta de imagen procesada
-        var apiDetections: List<Detection>? = null, // NUEVO: Detecciones de la API
-        var imageWidth: Int? = null, // NUEVO: Ancho de imagen
-        var imageHeight: Int? = null // NUEVO: Alto de imagen
+        var processedImagePath: String? = null,
+        var apiDetections: List<Detection>? = null,
+        var imageWidth: Int? = null,
+        var imageHeight: Int? = null
     )
 
     data class ModelPredictionResult(
@@ -576,33 +661,71 @@ object ImageProcessor {
     }
 }
 
-// CLASE OPTIMIZADA: ApiManager con nuevo método para detección de plagas
+// CLASE MODIFICADA: ApiManager con manejo de errores mejorado
 class ApiManager {
-    private val apiService = ApiClient.apiService
+    private val apiService = ApiClient.createApiService(this)
 
-    suspend fun uploadImage(imageFile: File): Int = withContext(Dispatchers.IO) {
-        val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
-        val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
+    companion object {
+        private const val TAG = "ApiManager"
+    }
 
-        val response = apiService.uploadImage(body).execute()
-        if (response.isSuccessful) {
-            response.body()?.id_image ?: throw Exception("No se obtuvo ID de imagen")
-        } else {
-            throw Exception("Error al subir imagen: ${response.message()}")
+    suspend fun uploadImage(
+        imageFile: File,
+        plaguePercentage: Float = 0.0f
+    ): Int = withContext(Dispatchers.IO) {
+        try {
+            if (!imageFile.exists()) {
+                throw Exception("El archivo no existe: ${imageFile.absolutePath}")
+            }
+
+            // Crear RequestBody para el archivo
+            val requestFile = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            val filePart = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
+
+            // Crear RequestBody para el porcentaje de plaga
+            val porcentajePlaga = plaguePercentage.toString()
+            val porcentajeBody = porcentajePlaga.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val response = apiService.uploadImage(filePart, porcentajeBody)
+
+            if (response.isSuccessful) {
+                val imageResponse = response.body()
+                if (imageResponse != null) {
+                    Log.d(TAG, "Imagen subida exitosamente: ${imageFile.name} -> ID=${imageResponse.id_image}")
+                    imageResponse.id_image
+                } else {
+                    throw Exception("Respuesta vacía del servidor")
+                }
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+                throw Exception("Error al subir imagen: ${response.code()} - ${response.message()} - $errorBody")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al subir imagen: ${imageFile.name}", e)
+            throw Exception("Error al subir imagen ${imageFile.name}: ${e.message}")
         }
     }
 
-    // NUEVO MÉTODO: Detectar plagas usando la API
+    // MÉTODO MODIFICADO: Mejor manejo de errores de conexión
     suspend fun detectPests(imageFile: File): PestDetectionResponse = withContext(Dispatchers.IO) {
-        val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
-        val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
-        val returnImageBody = RequestBody.create("text/plain".toMediaType(), "true")
+        try {
+            val requestFile = RequestBody.create("image/jpeg".toMediaType(), imageFile)
+            val body = MultipartBody.Part.createFormData("file", imageFile.name, requestFile)
+            val returnImageBody = RequestBody.create("text/plain".toMediaType(), "true")
 
-        val response = apiService.detectPests(body, returnImageBody).execute()
-        if (response.isSuccessful) {
-            response.body() ?: throw Exception("Respuesta vacía de la API")
-        } else {
-            throw Exception("Error al detectar plagas: ${response.message()}")
+            val response = apiService.detectPests(body, returnImageBody).execute()
+            if (response.isSuccessful) {
+                response.body() ?: throw Exception("Respuesta vacía de la API")
+            } else {
+                throw Exception("Error al detectar plagas: ${response.code()} - ${response.message()}")
+            }
+        } catch (e: java.net.UnknownHostException) {
+            throw Exception("Sin conexión a internet")
+        } catch (e: java.net.SocketTimeoutException) {
+            throw Exception("Tiempo de espera agotado")
+        } catch (e: java.io.IOException) {
+            throw Exception("Error de conexión: ${e.message}")
         }
     }
 

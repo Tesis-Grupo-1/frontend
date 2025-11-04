@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scroll_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/header_gradient_background"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:elevation="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Resultados del Escaneo"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Análisis completado"
+                android:textColor="#E8F5E8"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <!-- Estadísticas principales -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_estadisticas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊 Estadísticas del Análisis"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Grid de estadísticas -->
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="2"
+                    android:rowCount="3">
+
+                    <!-- Frames analizados -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_total_frames"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="#2196F3" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Frames"
+                            android:textSize="12sp"
+                            android:textColor="#666666" />
+
+                    </LinearLayout>
+
+                    <!-- Plagas detectadas -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_plagas_detectadas"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="#F44336" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Plagas"
+                            android:textSize="12sp"
+                            android:textColor="#666666" />
+
+                    </LinearLayout>
+
+                    <!-- Duración -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_duracion_escaneo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.0s"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#FF9800" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Duración"
+                            android:textSize="12sp"
+                            android:textColor="#666666" />
+
+                    </LinearLayout>
+
+                    <!-- Confianza promedio -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_confianza_promedio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0%"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#4CAF50" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Confianza"
+                            android:textSize="12sp"
+                            android:textColor="#666666" />
+
+                    </LinearLayout>
+
+                    <!-- Tiempo promedio -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp"
+                        android:gravity="center"
+                        android:layout_columnSpan="2">
+
+                        <TextView
+                            android:id="@+id/tv_tiempo_promedio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.00s"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#9C27B0" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tiempo promedio"
+                            android:textSize="12sp"
+                            android:textColor="#666666" />
+
+                    </LinearLayout>
+
+                </GridLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Imágenes detectadas -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🖼️ Imágenes con Plagas Detectadas"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/images_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Botón de acción -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_upload_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Guardando datos..."
+                android:textAlignment="center"
+                android:textSize="14sp"
+                android:textColor="@color/primary_green"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_finalizar"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="FINALIZAR"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:backgroundTint="#4CAF50"
+                app:cornerRadius="28dp"
+                app:icon="@drawable/ic_home"
+                app:iconSize="24dp"
+                app:iconTint="#FFFFFF" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

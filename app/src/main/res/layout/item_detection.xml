@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_detection"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/light_gray"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header con campo y fecha -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@+id/tv_detection_date"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_field_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nombre del Campo"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/dark_text" />
+
+                <TextView
+                    android:id="@+id/tv_detection_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="14:30 PM"
+                    android:textSize="12sp"
+                    android:textColor="@color/secondary_text"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_detection_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:text="15/03/2024"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_green" />
+
+        </RelativeLayout>
+
+        <!-- Información de la detección -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Porcentaje afectado -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_warning"
+                    android:tint="@color/warning_orange" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_affected_percentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="25.5%"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/warning_orange" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Afectado"
+                        android:textSize="11sp"
+                        android:textColor="@color/secondary_text" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Cantidad de plantas -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_plant_scan"
+                    android:tint="@color/primary_green" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_plant_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="150"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_green" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Plantas"
+                        android:textSize="11sp"
+                        android:textColor="@color/secondary_text" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Ubicación GPS (si está disponible) -->
+        <LinearLayout
+            android:id="@+id/layout_gps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_location"
+                android:tint="@color/secondary_text" />
+
+            <TextView
+                android:id="@+id/tv_gps_location"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="GPS: -12.0464, -77.0428"
+                android:textSize="12sp"
+                android:textColor="@color/secondary_text" />
+
+        </LinearLayout>
+
+        <!-- Notas (si existen) -->
+        <LinearLayout
+            android:id="@+id/layout_notes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:layout_gravity="start"
+                android:layout_marginTop="2dp"
+                android:src="@drawable/ic_note"
+                android:tint="@color/secondary_text" />
+
+            <TextView
+                android:id="@+id/tv_notes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Notas adicionales..."
+                android:textSize="13sp"
+                android:textColor="@color/secondary_text"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+        <!-- Línea divisoria -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/light_gray"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:alpha="0.3" />
+
+        <!-- Footer con indicador de estado -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/iv_status_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_check_circle" />
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Detección completada"
+                android:textSize="12sp"
+                android:textColor="@color/hint_text" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ver detalles ›"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_green" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

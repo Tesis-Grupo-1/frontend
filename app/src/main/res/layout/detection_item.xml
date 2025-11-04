@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    android:clickable="true"
+    android:foreground="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <!-- Imagen miniatura -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            android:layout_marginEnd="16dp">
+
+            <ImageView
+                android:id="@+id/detection_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/sample_plant_image" />
+
+            <!-- Overlay estado -->
+            <View
+                android:id="@+id/status_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#80F44336"
+                android:visibility="visible" />
+
+            <!-- Icono estado -->
+            <ImageView
+                android:id="@+id/status_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_warning"
+                android:tint="#FFFFFF" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Información de la detección -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Título y fecha -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/detection_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Detección de Pulgón"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+
+                <TextView
+                    android:id="@+id/detection_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="24 Sep"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+            </LinearLayout>
+
+            <!-- Cultivo -->
+            <TextView
+                android:id="@+id/crop_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tomate"
+                android:textSize="14sp"
+                android:textColor="#4CAF50"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Confianza y severidad -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <!-- Chip confianza -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/chip_background_green"
+                    android:padding="6dp"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:id="@+id/confidence_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="95% confianza"
+                        android:textSize="10sp"
+                        android:textColor="#FFFFFF" />
+
+                </LinearLayout>
+
+                <!-- Chip severidad -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/chip_background_orange"
+                    android:padding="6dp">
+
+                    <TextView
+                        android:id="@+id/severity_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Moderado"
+                        android:textSize="10sp"
+                        android:textColor="#FFFFFF" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Botón ver informe -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/view_report_button"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="VER INFORME"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                app:backgroundTint="@android:color/transparent"
+                android:textColor="#4CAF50"
+                android:minWidth="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="8dp"
+                app:icon="@drawable/ic_arrow_forward"
+                app:iconSize="16dp"
+                app:iconTint="#4CAF50" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

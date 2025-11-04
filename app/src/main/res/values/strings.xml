@@ -10,8 +10,7 @@
     <string name="storage_permission_granted">Permiso de almacenamiento concedido</string>
     <string name="camera_permission_granted">Permiso de cámara concedido</string>
 
-    <!-- Strings adicionales que podrías necesitar -->
-    <string name="loading">Cargando...</string>
+
     <string name="processing_image">Procesando imagen...</string>
     <string name="image_saved">Imagen guardada correctamente</string>
 
@@ -19,6 +18,51 @@
     <string name="precision_format">Predicción: %s</string>
     <string name="error_loading_image">Error al cargar la imagen</string>
 
+    <!-- Login strings -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="email_hint">Email o Usuario</string>
+    <string name="password_hint">Contraseña</string>
+    <string name="login_button">INICIAR SESIÓN</string>
+    <string name="remember_me">Recordar sesión</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="create_account">¿No tienes cuenta? Regístrate</string>
+    <string name="logging_in">Iniciando sesión...</string>
 
+    <!-- Error messages -->
+    <string name="error_invalid_email">Email inválido</string>
+    <string name="error_empty_email">El email es obligatorio</string>
+    <string name="error_empty_password">La contraseña es obligatoria</string>
+    <string name="error_short_password">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="error_login_failed">Error al iniciar sesión</string>
+    <string name="error_network">Sin conexión a internet</string>
+    <string name="error_invalid_credentials">Credenciales incorrectas</string>
+    <string name="error_server">Error del servidor</string>
+
+    <!-- Success messages -->
+    <string name="login_success">Bienvenido %1$s</string>
+    <string name="logout_success">Sesión cerrada</string>
+
+    <!-- Menu strings -->
+    <string name="menu_profile">Perfil</string>
+    <string name="menu_logout">Cerrar Sesión</string>
+
+    <!-- Dialog strings -->
+    <string name="profile_title">Perfil de Usuario</string>
+    <string name="profile_info">Email: %1$s\nRol: %2$s</string>
+    <string name="logout_title">Cerrar Sesión</string>
+    <string name="logout_message">¿Estás seguro que deseas cerrar sesión?</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+    <string name="cancel">Cancelar</string>
+    <string name="close">Cerrar</string>
+
+    <!-- General strings -->
+    <string name="loading">Cargando...</string>
+    <string name="retry">Reintentar</string>
+    <string name="version">Versión %1$s</string>
+    <string name="app_subtitle">Detección inteligente de plagas</string>
+
+    <!-- Not implemented -->
+    <string name="functionality_not_implemented">Funcionalidad no implementada</string>
 
 </resources>

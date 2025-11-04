@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.example.app_mosca.ui.theme.MainActivity
 import com.example.app_mosca.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
