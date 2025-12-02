@@ -286,7 +286,7 @@ class EscanearPlagas : ComponentActivity() {
 
         isScanning = true
         scanStartTime = System.currentTimeMillis()
-        scanStartTimeFormatted = getCurrentTime()  // 🔥 Guardar hora de inicio
+        scanStartTimeFormatted = getCurrentTime()
         lastAnalysisTime = 0L
 
         framesAnalyzed = 0
@@ -331,9 +331,7 @@ class EscanearPlagas : ComponentActivity() {
             imageProxy.close()
             return
         }
-
         val frameStartTime = System.currentTimeMillis()
-
         try {
             val bitmap = imageProxyToBitmap(imageProxy)
 
@@ -343,27 +341,17 @@ class EscanearPlagas : ComponentActivity() {
 
                 if (analysisResult.isPlagaDetected) {
                     plagasDetected++
-
                     val processingTime = (System.currentTimeMillis() - frameStartTime) / 1000.0
                     processingTimes.add(processingTime)
-
-                    // 🔥 CRÍTICO: Guardar la confidence ANTES de guardar la imagen
-                    // para que el índice coincida
                     confidences.add(analysisResult.confidence)
-
-                    // Guardar imagen (esto añade a detectedImagesPaths)
                     saveDetectedImage(bitmap, analysisResult)
-
-                    // Log para debugging
                     Log.d(TAG, "✅ Plaga guardada - Index: ${confidences.size - 1}, Confidence: ${analysisResult.confidence} (${(analysisResult.confidence * 100).toInt()}%)")
                     Log.d(TAG, "   Total confidences: ${confidences.size}, Total imágenes: ${detectedImagesPaths.size}")
-
                     runOnUiThread {
                         Toast.makeText(this,
                             "Plaga detectada en $selectedFieldName! Confianza: ${(analysisResult.confidence * 100).toInt()}%",
                             Toast.LENGTH_SHORT).show()
                     }
-
                     Log.d(TAG, "Plaga detectada en campo $selectedFieldName - Frame: $framesAnalyzed, Confianza: ${analysisResult.confidence}")
                 }
 

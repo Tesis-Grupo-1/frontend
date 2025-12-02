@@ -217,13 +217,13 @@ class ReporteActivity : ComponentActivity() {
             result.fold(
                 onSuccess = { response ->
                     savedDetectionIds.add(response.id_detection)
-                    Log.d(TAG, "✅ Detección creada correctamente (ID ${response.id_detection})")
+                    Log.d(TAG, "Detección creada correctamente (ID ${response.id_detection})")
 
                     withContext(Dispatchers.Main) {
                         progressBar.visibility = View.GONE
                         tvUploadProgress.text =
-                            if (hasPlague) "✅ Detección guardada exitosamente"
-                            else "✅ Registro sin plagas guardado"
+                            if (hasPlague) "Detección guardada exitosamente"
+                            else "Registro sin plagas guardado"
                         btnFinalizar.isEnabled = true
                         showToast(if (hasPlague) "¡Detección guardada con éxito!" else "No se detectaron plagas.")
                     }

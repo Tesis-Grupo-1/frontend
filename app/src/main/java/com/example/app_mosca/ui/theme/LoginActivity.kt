@@ -82,7 +82,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         binding.createAccount.setOnClickListener {
-            showMessage("Funcionalidad próximamente")
+            navigateToRegister()
         }
     }
 
@@ -170,5 +170,10 @@ class LoginActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    private fun navigateToRegister() {
+        val intent = Intent(this, RegisterActivity::class.java)
+        startActivity(intent)
     }
 }

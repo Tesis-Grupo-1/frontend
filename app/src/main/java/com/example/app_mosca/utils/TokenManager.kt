@@ -5,15 +5,25 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
+/**
+ * TokenManager que usa SecureStorage (Android Keystore) para almacenar el token JWT.
+ * REQUISITO RFP05: El token JWT se almacena de forma segura usando Android Keystore.
+ * 
+ * Los datos del usuario (email, role) se mantienen en EncryptedSharedPreferences
+ * ya que no son tan sensibles como el token JWT.
+ */
 class TokenManager(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "secure_prefs"
-        private const val KEY_TOKEN = "auth_token"
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_ROLE = "user_role"
     }
 
+    // REQUISITO RFP05: SecureStorage para el token JWT usando Android Keystore
+    private val secureStorage: SecureStorage = SecureStorage(context)
+    
+    // EncryptedSharedPreferences para datos del usuario (menos sensibles)
     private val sharedPrefs: SharedPreferences
 
     init {
@@ -30,14 +40,23 @@ class TokenManager(context: Context) {
         )
     }
 
+    /**
+     * Guarda el token JWT de forma segura usando Android Keystore.
+     * REQUISITO RFP05: El token se cifra con AES/GCM/NoPadding.
+     */
     fun saveToken(token: String) {
-        sharedPrefs.edit()
-            .putString(KEY_TOKEN, token)
-            .apply()
+        val success = secureStorage.saveToken(token)
+        if (!success) {
+            throw SecurityException("No se pudo guardar el token de forma segura")
+        }
     }
 
+    /**
+     * Obtiene el token JWT descifrado desde el almacenamiento seguro.
+     * REQUISITO RFP05: El token se descifra desde Android Keystore.
+     */
     fun getToken(): String? {
-        return sharedPrefs.getString(KEY_TOKEN, null)
+        return secureStorage.getToken()
     }
 
     fun saveUserData(email: String, role: String) {
@@ -55,9 +74,16 @@ class TokenManager(context: Context) {
         return sharedPrefs.getString(KEY_USER_ROLE, null)
     }
 
+    /**
+     * Elimina el token JWT y los datos del usuario de forma segura.
+     * REQUISITO RFP05: El token se elimina del almacenamiento seguro.
+     */
     fun clearToken() {
+        // REQUISITO RFP05: Eliminar token del SecureStorage (Android Keystore)
+        secureStorage.deleteToken()
+        
+        // Eliminar datos del usuario
         sharedPrefs.edit()
-            .remove(KEY_TOKEN)
             .remove(KEY_USER_EMAIL)
             .remove(KEY_USER_ROLE)
             .apply()

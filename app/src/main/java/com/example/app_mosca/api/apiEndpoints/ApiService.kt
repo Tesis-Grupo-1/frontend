@@ -30,7 +30,12 @@ interface ApiService {
     suspend fun login(
         @Field("username") username: String,
         @Field("password") password: String
-    ): Response<Token>
+    ): Response<LoginResponse>
+
+    @POST("auth/register")
+    suspend fun register(
+        @Body registerRequest: RegisterRequest
+    ): Response<UserResponse>
 
     @GET("auth/me")
     suspend fun getCurrentUser(): Response<UserResponse>

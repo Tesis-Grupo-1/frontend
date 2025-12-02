@@ -45,7 +45,18 @@
         </activity>
 
         <activity
+            android:name=".ui.theme.PrivacyNoticeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca" />
+
+        <activity
             android:name=".ui.theme.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppMosca"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.theme.RegisterActivity"
             android:exported="false"
             android:theme="@style/Theme.AppMosca"
             android:windowSoftInputMode="adjustResize" />

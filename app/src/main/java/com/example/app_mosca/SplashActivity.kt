@@ -11,6 +11,7 @@ import com.example.app_mosca.api.apiClient.ApiClient
 import com.example.app_mosca.repositories.AuthRepository
 import com.example.app_mosca.ui.theme.LoginActivity
 import com.example.app_mosca.ui.theme.MainActivity
+import com.example.app_mosca.ui.theme.PrivacyNoticeActivity
 import com.example.app_mosca.utils.NetworkUtils
 import com.example.app_mosca.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -35,9 +36,9 @@ class SplashActivity : AppCompatActivity() {
         // Inicializar dependencias
         initializeComponents()
 
-        // Verificar autenticación después del splash
+        // Verificar aviso de privacidad y autenticación después del splash
         Handler(Looper.getMainLooper()).postDelayed({
-            checkAuthentication()
+            checkPrivacyNoticeAndAuth()
         }, SPLASH_TIME_OUT)
     }
 
@@ -45,6 +46,23 @@ class SplashActivity : AppCompatActivity() {
         tokenManager = TokenManager(this)
         ApiClient.initialize(tokenManager)
         authRepository = AuthRepository(ApiClient.apiService, tokenManager)
+    }
+
+    /**
+     * Verifica primero si el aviso de privacidad ha sido aceptado.
+     * Si no ha sido aceptado, redirige a PrivacyNoticeActivity.
+     * Si ya fue aceptado, procede con la verificación de autenticación.
+     */
+    private fun checkPrivacyNoticeAndAuth() {
+        // Verificar si el aviso de privacidad ha sido aceptado
+        if (!PrivacyNoticeActivity.isPrivacyNoticeAccepted(this)) {
+            Log.d(TAG, "Aviso de privacidad no aceptado, redirigiendo a PrivacyNoticeActivity")
+            navigateToPrivacyNotice()
+            return
+        }
+
+        // Si el aviso fue aceptado, proceder con la verificación de autenticación
+        checkAuthentication()
     }
 
     private fun checkAuthentication() {
@@ -77,6 +95,13 @@ class SplashActivity : AppCompatActivity() {
             Log.d(TAG, "No hay token, redirigiendo a login")
             navigateToLogin()
         }
+    }
+
+    private fun navigateToPrivacyNotice() {
+        val intent = Intent(this, PrivacyNoticeActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     private fun navigateToMain() {

@@ -12,26 +12,35 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
-    // private const val BASE_URL = "https://625758cdcb72.ngrok-free.app/"
-    private const val BASE_URL = "https://sominascan.tech/"
+    private const val BASE_URL = "https://www.sominascan.tech/"
+    // private const val BASE_URL = "http://localhost:8000/"
     private lateinit var tokenManager: TokenManager
 
     fun initialize(tokenManager: TokenManager) {
         this.tokenManager = tokenManager
     }
 
-    // Interceptor para agregar el token JWT a cada petición
+    /**
+     * Interceptor para agregar el token JWT a cada petición.
+     * REQUISITO RFP05: Lee el token desde SecureStorage (Android Keystore) a través de TokenManager.
+     * 
+     * - Si no hay token → no se agrega el header Authorization
+     * - Si hay token → se agrega como "Bearer {token}"
+     * - Si recibimos 401 → elimina el token del almacenamiento seguro
+     */
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
 
-        // Si es el endpoint de login, no agregar token
+        // Si es el endpoint de login o registro, no agregar token
         if (originalRequest.url.pathSegments.contains("login") ||
             originalRequest.url.pathSegments.contains("register")) {
             return@Interceptor chain.proceed(originalRequest)
         }
 
+        // REQUISITO RFP05: Obtener token desde SecureStorage (Android Keystore)
         val token = tokenManager.getToken()
 
+        // Si el token no existe, no se agrega el header Authorization
         val newRequest = if (token != null) {
             originalRequest.newBuilder()
                 .addHeader("Authorization", "Bearer $token")
@@ -42,9 +51,9 @@ object ApiClient {
 
         val response = chain.proceed(newRequest)
 
-        // Si recibimos 401, el token expiró
+        // Si recibimos 401, el token expiró o es inválido
         if (response.code == 401) {
-            // Limpiar token inválido
+            // REQUISITO RFP05: Eliminar token del almacenamiento seguro
             tokenManager.clearToken()
             // El usuario será redirigido al login por el AuthRepository
         }
